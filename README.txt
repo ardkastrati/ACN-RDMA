@@ -1,3 +1,13 @@
+To redirect Mozilla Firefox brower to the client proxy:
+
+Edit -> Preferences -> Advanced -> Network -> Settings ->
+Manual Proxy Configurations ->
+
+HTTP Proxy: 127.0.0.1
+Port: 8000
+
+-> OK
+
 To compile the project:
 
 $ mvn clean compile assembly:single
