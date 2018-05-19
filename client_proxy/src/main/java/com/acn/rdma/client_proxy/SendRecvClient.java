@@ -19,7 +19,7 @@
  *
  */
 
-package com.acn.rdma.server;
+package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.net.URI;
@@ -30,86 +30,89 @@ import java.util.concurrent.ArrayBlockingQueue;
 import com.ibm.disni.rdma.RdmaActiveEndpoint;
 import com.ibm.disni.rdma.RdmaActiveEndpointGroup;
 import com.ibm.disni.rdma.RdmaEndpointFactory;
-import com.ibm.disni.rdma.RdmaServerEndpoint;
 import com.ibm.disni.rdma.verbs.IbvMr;
 import com.ibm.disni.rdma.verbs.IbvRecvWR;
 import com.ibm.disni.rdma.verbs.IbvSendWR;
 import com.ibm.disni.rdma.verbs.IbvSge;
 import com.ibm.disni.rdma.verbs.IbvWC;
 import com.ibm.disni.rdma.verbs.RdmaCmId;
+import com.ibm.disni.rdma.verbs.SVCPostSend;
 import com.ibm.disni.util.GetOpt;
 
 
-
-public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> {
+public class SendRecvClient implements RdmaEndpointFactory<SendRecvClient.CustomClientEndpoint> { 
 	private String ipAddress;
-	RdmaActiveEndpointGroup<Server.CustomServerEndpoint> endpointGroup;
+	private SendRecvClient.CustomClientEndpoint endpoint;
+	RdmaActiveEndpointGroup<SendRecvClient.CustomClientEndpoint> endpointGroup;
 	
-	public Server.CustomServerEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
-		return new Server.CustomServerEndpoint(endpointGroup, idPriv, serverSide);
-	}	
+	public SendRecvClient.CustomClientEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
+		return new CustomClientEndpoint(endpointGroup, idPriv, serverSide);
+	}
 	
 	public void run() throws Exception {
 		//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-		endpointGroup = new RdmaActiveEndpointGroup<Server.CustomServerEndpoint>(1000, false, 128, 4, 128);
+		endpointGroup = new RdmaActiveEndpointGroup<SendRecvClient.CustomClientEndpoint>(1000, false, 128, 4, 128);
 		endpointGroup.init(this);
-		//create a server endpoint
-		RdmaServerEndpoint<Server.CustomServerEndpoint> serverEndpoint = endpointGroup.createServerEndpoint();		
-
-		//we can call bind on a server endpoint, just like we do with sockets
-		URI uri = URI.create("rdma://" + ipAddress + ":" + 1919);
-		serverEndpoint.bind(uri);
-		System.out.println("SimpleServer::servers bound to address " + uri.toString());
+		//we have passed our own endpoint factory to the group, therefore new endpoints will be of type CustomClientEndpoint
+		//let's create a new client endpoint
+		this.endpoint = endpointGroup.createEndpoint();
 		
-		//we can accept new connections
-		Server.CustomServerEndpoint clientEndpoint = serverEndpoint.accept();
-		//we have previously passed our own endpoint factory to the group, therefore new endpoints will be of type CustomServerEndpoint
-		System.out.println("SimpleServer::client connection accepted");
-
-		
-		//in our custom endpoints we have prepared (memory registration and work request creation) some memory buffers beforehand. 
-		// ByteBuffer sendBuf = clientEndpoint.getSendBuf();
-		// sendBuf.asCharBuffer().put("Hello from the server");
-		// sendBuf.clear();		
+		//connect to the server
+		this.endpoint.connect(URI.create("rdma://" + ipAddress + ":" + 1919));
+		System.out.println("SimpleClient::client channel set up ");
+	}
+	
+	public boolean requestIndex() throws Exception {
+		//in our custom endpoints we have prepared (memory registration and work request creation) some memory 
+		//buffers beforehand.
+		//let's send one of those buffers out using a send operation
+		ByteBuffer sendBuf = this.endpoint.getSendBuf();
+		sendBuf.asCharBuffer().put("GET Index");
+		sendBuf.clear();
+		SVCPostSend postSend = endpoint.postSend(endpoint.getWrList_send());
+		postSend.getWrMod(0).setWr_id(4444);
+		postSend.execute().free();
 		
 		//in our custom endpoints we make sure CQ events get stored in a queue, we now query that queue for new CQ events.
-		//in this case a new CQ event means we have received data, i.e., a message from the client.
-		clientEndpoint.getWcEvents().take();
-		System.out.println("SimpleServer::message received");
-		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
+		//in this case a new CQ event means we have sent data, i.e., the message has been sent to the server
+		IbvWC wc = endpoint.getWcEvents().take();
+		System.out.println("SimpleClient::message sent, wr_id " + wc.getWr_id());
+		//in this case a new CQ event means we have received data
+		endpoint.getWcEvents().take();
+		System.out.println("SimpleClient::message received");
 		
-		recvBuf.clear();			
-		
-		System.out.println(recvBuf.asCharBuffer().toString().substring(0, 9));
-		if (recvBuf.asCharBuffer().toString().substring(0, 9).equals("GET Index")) {
-			ByteBuffer sendBuf = clientEndpoint.getSendBuf();
-			sendBuf.asCharBuffer().put("200 OK");
-			sendBuf.clear();
-			clientEndpoint.postSend(clientEndpoint.getWrList_send()).execute().free();
-			//when receiving the CQ event we know the message has been sent
-			clientEndpoint.getWcEvents().take();
-			System.out.println("SimpleServer::message sent");
+		//the response should be received in this buffer, let's print it
+		ByteBuffer recvBuf = endpoint.getRecvBuf();
+		recvBuf.clear();
+		System.out.println("Message from the server: " + recvBuf.asCharBuffer().toString());		
+		if (recvBuf.asCharBuffer().toString().substring(0, 6).equals("200 OK")) {
+			return true;
+		}
+		else {
+			return false;
 		}
 		
-		
+		/*
 		//close everything
-		// clientEndpoint.close();
-		// System.out.println("client endpoint closed");
-		// serverEndpoint.close();
-		// System.out.println("server endpoint closed");
-		// endpointGroup.close();
-		// System.out.println("group closed");
+		endpoint.close();
+		System.out.println("endpoint closed");
+		endpointGroup.close();
+		System.out.println("group closed");
 //		System.exit(0);
+ * */
 	}
 	
 	public void launch(String[] args) throws Exception {
 		String[] _args = args;
 		if (args.length < 1) {
-			System.out.println("args smaller 1");
 			System.exit(0);
+		} else if (args[0].equals(SendRecvClient.class.getCanonicalName())) {
+			_args = new String[args.length - 1];
+			for (int i = 0; i < _args.length; i++) {
+				_args[i] = args[i + 1];
+			}
 		}
 
-		System.out.println("Getting args normally");
 		GetOpt go = new GetOpt(_args, "a:");
 		go.optErr = true;
 		int ch = -1;
@@ -123,12 +126,8 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 		this.run();
 	}
 	
-	public static void main(String[] args) throws Exception { 
-		Server simpleServer = new Server();
-		simpleServer.launch(args);		
-	}	
 	
-	public static class CustomServerEndpoint extends RdmaActiveEndpoint {
+	public static class CustomClientEndpoint extends RdmaActiveEndpoint {
 		private ByteBuffer buffers[];
 		private IbvMr mrlist[];
 		private int buffercount = 3;
@@ -153,7 +152,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 		
 		private ArrayBlockingQueue<IbvWC> wcEvents;
 
-		public CustomServerEndpoint(RdmaActiveEndpointGroup<CustomServerEndpoint> endpointGroup, RdmaCmId idPriv, boolean serverSide) throws IOException {	
+		public CustomClientEndpoint(RdmaActiveEndpointGroup<CustomClientEndpoint> endpointGroup, RdmaCmId idPriv, boolean serverSide) throws IOException {	
 			super(endpointGroup, idPriv, serverSide);
 			this.buffercount = 3;
 			this.buffersize = 100;
@@ -172,7 +171,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 			this.wrList_recv = new LinkedList<IbvRecvWR>();	
 			this.sgeRecv = new IbvSge();
 			this.sgeListRecv = new LinkedList<IbvSge>();
-			this.recvWR = new IbvRecvWR();		
+			this.recvWR = new IbvRecvWR();	
 			
 			this.wcEvents = new ArrayBlockingQueue<IbvWC>(10);
 		}
@@ -193,6 +192,13 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 			this.recvBuf = buffers[2];
 			this.recvMr = mrlist[2];
 			
+			dataBuf.clear();		
+
+			sendBuf.putLong(dataMr.getAddr());
+			sendBuf.putInt(dataMr.getLength());
+			sendBuf.putInt(dataMr.getLkey());
+			sendBuf.clear();
+
 			sgeSend.setAddr(sendMr.getAddr());
 			sgeSend.setLength(sendMr.getLength());
 			sgeSend.setLkey(sendMr.getLkey());
@@ -202,6 +208,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 			sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
 			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
 			wrList_send.add(sendWR);
+
 			
 			sgeRecv.setAddr(recvMr.getAddr());
 			sgeRecv.setLength(recvMr.getLength());
@@ -212,7 +219,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 			recvWR.setWr_id(2001);
 			wrList_recv.add(recvWR);
 			
-			System.out.println("SimpleServer::initiated recv");
+			System.out.println("SimpleClient::initiated recv");
 			this.postRecv(wrList_recv).execute().free();		
 		}
 		
@@ -222,7 +229,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 		
 		public ArrayBlockingQueue<IbvWC> getWcEvents() {
 			return wcEvents;
-		}		
+		}	
 
 		public LinkedList<IbvSendWR> getWrList_send() {
 			return wrList_send;
@@ -230,8 +237,8 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 
 		public LinkedList<IbvRecvWR> getWrList_recv() {
 			return wrList_recv;
-		}	
-		
+		}
+
 		public ByteBuffer getDataBuf() {
 			return dataBuf;
 		}
@@ -250,18 +257,6 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 
 		public IbvRecvWR getRecvWR() {
 			return recvWR;
-		}
-
-		public IbvMr getDataMr() {
-			return dataMr;
-		}
-
-		public IbvMr getSendMr() {
-			return sendMr;
-		}
-
-		public IbvMr getRecvMr() {
-			return recvMr;
 		}		
 	}
 	
