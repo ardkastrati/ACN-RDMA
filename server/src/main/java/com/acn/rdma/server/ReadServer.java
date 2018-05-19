@@ -22,12 +22,11 @@
 package com.acn.rdma.server;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -43,100 +42,81 @@ import com.ibm.disni.rdma.verbs.IbvWC;
 import com.ibm.disni.rdma.verbs.RdmaCmId;
 import com.ibm.disni.util.GetOpt;
 
-
-public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> {
+public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEndpoint> {
 	private String ipAddress;
-	RdmaActiveEndpointGroup<Server.CustomServerEndpoint> endpointGroup;
+	private RdmaActiveEndpointGroup<ReadServer.CustomServerEndpoint> endpointGroup;
 	
-	public Server.CustomServerEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
-		return new Server.CustomServerEndpoint(endpointGroup, idPriv, serverSide);
+	public ReadServer.CustomServerEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
+		return new ReadServer.CustomServerEndpoint(endpointGroup, idPriv, serverSide);
 	}	
 	
 	public void run() throws Exception {
 		//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-		endpointGroup = new RdmaActiveEndpointGroup<Server.CustomServerEndpoint>(1000, false, 128, 4, 128);
+		endpointGroup = new RdmaActiveEndpointGroup<CustomServerEndpoint>(1000, false, 128, 4, 128);
 		endpointGroup.init(this);
 		//create a server endpoint
-		RdmaServerEndpoint<Server.CustomServerEndpoint> serverEndpoint = endpointGroup.createServerEndpoint();		
-
+		RdmaServerEndpoint<ReadServer.CustomServerEndpoint> serverEndpoint = endpointGroup.createServerEndpoint();
+		
 		//we can call bind on a server endpoint, just like we do with sockets
 		URI uri = URI.create("rdma://" + ipAddress + ":" + 1919);
 		serverEndpoint.bind(uri);
-		System.out.println("SimpleServer::servers bound to address " + uri.toString());
+		System.out.println("ReadServer::server bound to address" + uri.toString());
 		
 		//we can accept new connections
-		Server.CustomServerEndpoint clientEndpoint = serverEndpoint.accept();
-		//we have previously passed our own endpoint factory to the group, therefore new endpoints will be of type CustomServerEndpoint
-		System.out.println("SimpleServer::client connection accepted");
-
-		
-		//in our custom endpoints we have prepared (memory registration and work request creation) some memory buffers beforehand. 
-		// ByteBuffer sendBuf = clientEndpoint.getSendBuf();
-		// sendBuf.asCharBuffer().put("Hello from the server");
-		// sendBuf.clear();		
+		ReadServer.CustomServerEndpoint endpoint = serverEndpoint.accept();
+		System.out.println("ReadServer::connection accepted ");
 		
 		//in our custom endpoints we make sure CQ events get stored in a queue, we now query that queue for new CQ events.
-		//in this case a new CQ event means we have received data, i.e., a message from the client.
-		clientEndpoint.getWcEvents().take();
+		//in this case a new CQ event means we have received data, i.e., a message from the client.		
+		endpoint.getWcEvents().take();
 		System.out.println("SimpleServer::message received");
-		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
+		ByteBuffer recvBuf = endpoint.getRecvBuf();
 		
-		recvBuf.clear();			
+		recvBuf.clear();
+		System.out.println(recvBuf.asCharBuffer().toString());
 		
-		System.out.println(recvBuf.asCharBuffer().toString().substring(0, 9));
-		if (recvBuf.asCharBuffer().toString().substring(0, 9).equals("GET Index")) {
-			// place the data in a data buffer to be read by the client
-			ByteBuffer dataBuf = clientEndpoint.getDataBuf();
-			IbvMr dataMr = clientEndpoint.getDataMr();
-			String htmlFile = null;
-			try {
-				htmlFile = fileToString();
-			} catch (Exception e) {
-				System.out.println("Could not read the file");
-				e.printStackTrace();
-				System.exit(-1);
-			}
+		
+		//let's prepare a message to be sent to the client
+		//in the message we include the RDMA information of a local buffer which we allow the client to read using a one-sided RDMA operation
+		ByteBuffer dataBuf = endpoint.getDataBuf();
+		IbvMr dataMr = endpoint.getDataMr();
 
-			dataBuf.asCharBuffer().put(htmlFile);
-			System.out.println(dataBuf.asCharBuffer().toString());
-			dataBuf.clear();
-			
-			// send the RDMA information about the local buffer where the client can read the data
-			ByteBuffer sendBuf = clientEndpoint.getSendBuf();
-			sendBuf.put("200 OK".getBytes());
-			sendBuf.putLong(dataMr.getAddr());
-			System.out.println("addr: " + dataMr.getAddr());
-			sendBuf.putInt(dataMr.getLength());
-			System.out.println("len: " + dataMr.getLength());
-			sendBuf.putInt(dataMr.getLkey());
-			System.out.println("lkey: " + dataMr.getLkey());
-			sendBuf.clear();
-			
-			clientEndpoint.postSend(clientEndpoint.getWrList_send()).execute().free();
-			// when receiving the CQ event we know the message has been sent
-			clientEndpoint.getWcEvents().take();
-			System.out.println("SimpleServer::message sent");
-			
-			// Wait for an event informing us that the message was received by the client
-			clientEndpoint.getWcEvents().take();
-			System.out.println("The event was read");
-			
-			// close everything
-			clientEndpoint.close();
-			serverEndpoint.close();
-			endpointGroup.close();
+		String htmlFile = null;
+		try {
+			htmlFile = fileToString();
+		} catch (Exception e) {
+			System.out.println("Could not read the file");
+			e.printStackTrace();
+			System.exit(-1);
 		}
+
+		dataBuf.asCharBuffer().put(htmlFile);
+		//dataBuf.asCharBuffer().put("This is a RDMA/read on stag " + dataMr.getLkey() + " !");
+		System.out.println(dataBuf.asCharBuffer().toString());
+		dataBuf.clear();
 		
+		
+		ByteBuffer sendBuf = endpoint.getSendBuf();
+		sendBuf.putLong(dataMr.getAddr());
+		sendBuf.putInt(dataMr.getLength());
+		sendBuf.putInt(dataMr.getLkey());
+		sendBuf.clear();	
+		
+		//post the operation to send the message
+		System.out.println("ReadServer::sending message");
+		endpoint.postSend(endpoint.getWrList_send()).execute().free();
+		//we have to wait for the CQ event, only then we know the message has been sent out
+		endpoint.getWcEvents().take();
+		
+		//let's wait for the final message to be received. We don't need to check the message itself, just the CQ event is enough.
+		endpoint.getWcEvents().take();
+		System.out.println("ReadServer::final message");
 		
 		//close everything
-		// clientEndpoint.close();
-		// System.out.println("client endpoint closed");
-		// serverEndpoint.close();
-		// System.out.println("server endpoint closed");
-		// endpointGroup.close();
-		// System.out.println("group closed");
-//		System.exit(0);
-	}
+		endpoint.close();
+		serverEndpoint.close();
+		endpointGroup.close();
+	}	
 	
 	private String fileToString() throws Exception {
 		BufferedReader br = new BufferedReader(new FileReader(
@@ -151,6 +131,8 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 				line = br.readLine();
 			}
 			
+//			sb.deleteCharAt(sb.length() - 1);
+			
 			String everything = sb.toString();
 			return everything;
 			
@@ -162,11 +144,14 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 	public void launch(String[] args) throws Exception {
 		String[] _args = args;
 		if (args.length < 1) {
-			System.out.println("args smaller 1");
 			System.exit(0);
+		} else if (args[0].equals(ReadServer.class.getCanonicalName())) {
+			_args = new String[args.length - 1];
+			for (int i = 0; i < _args.length; i++) {
+				_args[i] = args[i + 1];
+			}
 		}
 
-		System.out.println("Getting args normally");
 		GetOpt go = new GetOpt(_args, "a:");
 		go.optErr = true;
 		int ch = -1;
@@ -181,15 +166,15 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 	}
 	
 	public static void main(String[] args) throws Exception { 
-		Server simpleServer = new Server();
+		ReadServer simpleServer = new ReadServer();
 		simpleServer.launch(args);		
 	}	
 	
 	public static class CustomServerEndpoint extends RdmaActiveEndpoint {
 		private ByteBuffer buffers[];
 		private IbvMr mrlist[];
-		private int buffercount = 3;
-		private int buffersize = 1000;
+		private int buffercount;
+		private int buffersize;
 		
 		private ByteBuffer dataBuf;
 		private IbvMr dataMr;
@@ -212,6 +197,8 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 
 		public CustomServerEndpoint(RdmaActiveEndpointGroup<CustomServerEndpoint> endpointGroup, RdmaCmId idPriv, boolean serverSide) throws IOException {	
 			super(endpointGroup, idPriv, serverSide);
+			this.buffercount = 3;
+			this.buffersize = 500;
 			buffers = new ByteBuffer[buffercount];
 			this.mrlist = new IbvMr[buffercount];
 			
@@ -227,7 +214,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 			this.wrList_recv = new LinkedList<IbvRecvWR>();	
 			this.sgeRecv = new IbvSge();
 			this.sgeListRecv = new LinkedList<IbvSge>();
-			this.recvWR = new IbvRecvWR();		
+			this.recvWR = new IbvRecvWR();	
 			
 			this.wcEvents = new ArrayBlockingQueue<IbvWC>(10);
 		}
@@ -267,8 +254,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 			recvWR.setWr_id(2001);
 			wrList_recv.add(recvWR);
 			
-			System.out.println("SimpleServer::initiated recv");
-			this.postRecv(wrList_recv).execute().free();		
+			this.postRecv(wrList_recv).execute();		
 		}
 		
 		public void dispatchCqEvent(IbvWC wc) throws IOException {
@@ -277,7 +263,7 @@ public class Server implements RdmaEndpointFactory<Server.CustomServerEndpoint> 
 		
 		public ArrayBlockingQueue<IbvWC> getWcEvents() {
 			return wcEvents;
-		}		
+		}	
 
 		public LinkedList<IbvSendWR> getWrList_send() {
 			return wrList_send;

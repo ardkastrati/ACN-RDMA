@@ -37,7 +37,7 @@
 			<configuration>
 				<archive>
 					<manifest>
-						<mainClass>com.acn.rdma.server.Server</mainClass>
+						<mainClass>com.acn.rdma.server.ReadServer</mainClass>
 					</manifest>
 				</archive>
 				<descriptorRefs>

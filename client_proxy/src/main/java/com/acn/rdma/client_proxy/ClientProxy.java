@@ -21,11 +21,14 @@ import com.sun.net.httpserver.Headers;
 public class ClientProxy {
 
     public static void main(String[] args) throws Exception {
-    	SendRecvClient rdmaClient = new SendRecvClient();
-        rdmaClient.launch(args);
+    	//SendRecvClient rdmaClient = new SendRecvClient();
+        //rdmaClient.launch(args);
+    	ReadClient newClient = new ReadClient();
+    	newClient.launch(args);
         
     	HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
-        server.createContext("/", new MyHandler(rdmaClient));
+        server.createContext("/", new MyHandler(newClient));
+    	//server.createContext("/", new MyHandler(rdmaClient));
         server.setExecutor(null); // creates a default executor
         server.start();
     }
@@ -34,9 +37,12 @@ public class ClientProxy {
     static class MyHandler implements HttpHandler {
     	
     	private SendRecvClient rdmaClient;
+    	private ReadClient newClient;
     	
-    	public MyHandler(SendRecvClient rdmaClient) {
-    		this.rdmaClient = rdmaClient;
+    	//public MyHandler(SendRecvClient rdmaClient) {
+    	public MyHandler(ReadClient newClient) {
+    		this.newClient = newClient;
+    	//	this.rdmaClient = rdmaClient;
     	}
     	
         @Override
@@ -50,32 +56,27 @@ public class ClientProxy {
             	
             	System.out.println(t.getRequestURI());
             	
-            	boolean success = false;
+            	String index = null;
             	try {
-					success = this.rdmaClient.requestIndex();
+					index = this.newClient.requestIndex();
+					
+            		// this.newClient.requestIndex();
 				} catch (Exception e) {
 					t.sendResponseHeaders(504, -1);
 					e.printStackTrace();
 				}
             	
-            	if (success) {
-            		t.sendResponseHeaders(200, -1);
+            	if (index != null) {
+            		System.out.println("Sending 200");
+            		t.sendResponseHeaders(200, index.length());
+            		OutputStream os = t.getResponseBody();
+            		os.write(index.getBytes());
+            		os.close();
             	}
             	else {
+            		System.out.println("Sending 504");
             		t.sendResponseHeaders(504, -1);
             	}
-            	
-            	
-            	//String body = new BufferedReader(new InputStreamReader(t.getRequestBody())).lines().collect(Collectors.joining("\n"));
-            	//System.out.println(body);
-            	
-            	/*
-                String response = "This is the response";
-                t.sendResponseHeaders(200, response.length());
-                OutputStream os = t.getResponseBody();
-                os.write(response.getBytes());
-                os.close();
-                */
         	}
         	else {
         		t.sendResponseHeaders(404, -1);
