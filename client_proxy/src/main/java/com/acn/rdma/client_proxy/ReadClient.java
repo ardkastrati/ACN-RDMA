@@ -64,6 +64,7 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 	}
 	
 	public String requestIndex() throws Exception {
+		// send a message to the server requesting the index
 		ByteBuffer sendBuf = this.endpoint.getSendBuf();
 		sendBuf.asCharBuffer().put("GET Index");
 		sendBuf.clear();
@@ -71,20 +72,21 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		postSend.getWrMod(0).setWr_id(1000);
 		postSend.execute().free();
 		
-		//in our custom endpoints we make sure CQ events get stored in a queue, we now query that queue for new CQ events.
-		//in this case a new CQ event means we have sent data, i.e., the message has been sent to the server
+		// take the event confirming that the message was sent
 		IbvWC wc = endpoint.getWcEvents().take();
 		System.out.println("SimpleClient::message sent, wr_id " + wc.getWr_id());
 		
 		
 		
-		//in our custom endpoints we make sure CQ events get stored in a queue, we now query that queue for new CQ events.
-		//in this case a new CQ event means we have received some data, i.e., a message from the server
+		// XXX Hack: reconfigure sgeSend to be able to 'RDMA read'
+		endpoint.readInit();
+		
+		// message received from the server
 		endpoint.getWcEvents().take();
 		ByteBuffer recvBuf = endpoint.getRecvBuf();
-		//the message has been received in this buffer
-		//it contains some RDMA information sent by the server
 		recvBuf.clear();
+		
+		//it contains information about the 'RDMA read' that we should do
 		long addr = recvBuf.getLong();
 		int length = recvBuf.getInt();
 		int lkey = recvBuf.getInt();
@@ -93,7 +95,7 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		System.out.println("ReadClient::preparing read operation...");		
 
 		//the RDMA information above identifies a RDMA buffer at the server side
-		//let's issue a one-sided RDMA read opeation to fetch the content from that buffer
+		//let's issue a one-sided RDMA read operation to fetch the content from that buffer
 		IbvSendWR sendWR = endpoint.getSendWR();
 		sendWR.setWr_id(1001);
 		sendWR.setOpcode(IbvSendWR.IBV_WR_RDMA_READ);
@@ -103,14 +105,13 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		
 		//post the operation on the endpoint
 		postSend = endpoint.postSend(endpoint.getWrList_send());
-		
-		
 		postSend.getWrMod(0).getSgeMod(0).setLength(length);
 		postSend.execute();
-		//wait until the operation has completed
+		
+		// wait until the operation has completed
 		endpoint.getWcEvents().take();
 			
-		//we should have the content of the remote buffer in our own local buffer now
+		// now we should have the content of the remote buffer in our own local buffer
 		ByteBuffer dataBuf = endpoint.getDataBuf();
 		dataBuf.clear();
 		System.out.println("ReadClient::read memory from server: " + dataBuf.asCharBuffer().toString());		
@@ -123,16 +124,35 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		sendWR.getRdma().setRemote_addr(addr);
 		sendWR.getRdma().setRkey(lkey);
 		
-		//post that operation
+		// post that operation
 		endpoint.postSend(endpoint.getWrList_send()).execute().free();
-		
-		//close everything
-		System.out.println("closing endpoint");
-		endpoint.close();
-		System.out.println("closing endpoint, done");
-		endpointGroup.close();
-		
+		System.out.println("sent signal");
+				
 		return index;
+	}
+	
+	public void requestImage() throws Exception {
+		// XXX Hack to send the content of sendBuf instead of dataBuf
+		endpoint.sendInit();
+		
+		// send a message to the server requesting the image
+		ByteBuffer sendBuf = this.endpoint.getSendBuf();
+		sendBuf.asCharBuffer().put("GET Png");
+		sendBuf.clear();
+		SVCPostSend postSend = endpoint.postSend(endpoint.getWrList_send());
+		postSend.getWrMod(0).setWr_id(1002);
+		postSend.execute().free();
+		
+		// take the event confirming that the message was sent
+		IbvWC wc = endpoint.getWcEvents().take();
+		System.out.println("SimpleClient::message sent, wr_id " + wc.getWr_id());
+
+		//close everything
+		//System.out.println("closing endpoint");
+		//endpoint.close();
+		//System.out.println("closing endpoint, done");
+		//endpointGroup.close();
+
 	}
 	
 	public void launch(String[] args) throws Exception {
@@ -231,17 +251,7 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 			sendBuf.putInt(dataMr.getLkey());
 			sendBuf.clear();
 
-
-			sgeSend.setAddr(dataMr.getAddr());
-			sgeSend.setLength(dataMr.getLength());
-			sgeSend.setLkey(dataMr.getLkey());
-			sgeList.add(sgeSend);
-			sendWR.setWr_id(2000);
-			sendWR.setSg_list(sgeList);
-			sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
-			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);		
-			wrList_send.add(sendWR);
-
+			sendInit();
 			
 			sgeRecv.setAddr(recvMr.getAddr());
 			sgeRecv.setLength(recvMr.getLength());
@@ -255,6 +265,52 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 			System.out.println("ReadClient::initiated recv");
 			this.postRecv(wrList_recv).execute().free();		
 		}
+		/**
+		 * XXX
+		 * Hack to be able to send messages after 'RDMA read'
+		 * I am pretty sure this is not the correct way to do it but it works
+		 * 
+		 */
+		public void sendInit() {
+			this.wrList_send = new LinkedList<IbvSendWR>();	
+			this.sgeSend = new IbvSge();
+			this.sgeList = new LinkedList<IbvSge>();
+			this.sendWR = new IbvSendWR();
+			
+			sgeSend.setAddr(sendMr.getAddr());
+			sgeSend.setLength(sendMr.getLength());
+			sgeSend.setLkey(sendMr.getLkey());
+			sgeList.add(sgeSend);
+			sendWR.setWr_id(2000);
+			sendWR.setSg_list(sgeList);
+			sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
+			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
+			wrList_send.add(sendWR);
+		}
+		
+		/**
+		 * XXX
+		 * Hack to be able to 'RDMA read'
+		 * 
+		 * @throws IOException
+		 */
+		public void readInit() {
+			this.wrList_send = new LinkedList<IbvSendWR>();	
+			this.sgeSend = new IbvSge();
+			this.sgeList = new LinkedList<IbvSge>();
+			this.sendWR = new IbvSendWR();
+			
+			sgeSend.setAddr(dataMr.getAddr());
+			sgeSend.setLength(dataMr.getLength());
+			sgeSend.setLkey(dataMr.getLkey());
+			sgeList.add(sgeSend);
+			sendWR.setWr_id(2000);
+			sendWR.setSg_list(sgeList);
+			sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
+			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);		
+			wrList_send.add(sendWR);
+		}
+		
 		
 		public void dispatchCqEvent(IbvWC wc) throws IOException {
 			wcEvents.add(wc);

@@ -21,14 +21,11 @@ import com.sun.net.httpserver.Headers;
 public class ClientProxy {
 
     public static void main(String[] args) throws Exception {
-    	//SendRecvClient rdmaClient = new SendRecvClient();
-        //rdmaClient.launch(args);
-    	ReadClient newClient = new ReadClient();
-    	newClient.launch(args);
+    	ReadClient rdmaClient = new ReadClient();
+    	rdmaClient.launch(args);
         
     	HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
-        server.createContext("/", new MyHandler(newClient));
-    	//server.createContext("/", new MyHandler(rdmaClient));
+        server.createContext("/", new MyHandler(rdmaClient));
         server.setExecutor(null); // creates a default executor
         server.start();
     }
@@ -36,13 +33,10 @@ public class ClientProxy {
 
     static class MyHandler implements HttpHandler {
     	
-    	private SendRecvClient rdmaClient;
-    	private ReadClient newClient;
+    	private ReadClient rdmaClient;
     	
-    	//public MyHandler(SendRecvClient rdmaClient) {
-    	public MyHandler(ReadClient newClient) {
-    		this.newClient = newClient;
-    	//	this.rdmaClient = rdmaClient;
+    	public MyHandler(ReadClient rdmaClient) {
+    		this.rdmaClient = rdmaClient;
     	}
     	
         @Override
@@ -58,9 +52,8 @@ public class ClientProxy {
             	
             	String index = null;
             	try {
-					index = this.newClient.requestIndex();
+					index = this.rdmaClient.requestIndex();
 					
-            		// this.newClient.requestIndex();
 				} catch (Exception e) {
 					t.sendResponseHeaders(504, -1);
 					e.printStackTrace();
@@ -77,6 +70,14 @@ public class ClientProxy {
             		System.out.println("Sending 504");
             		t.sendResponseHeaders(504, -1);
             	}
+        	}
+        	else if (t.getRequestURI().toString().equals("http://www.rdmawebpage.com/network.png")) {
+        		try {
+					this.rdmaClient.requestImage();
+				} catch (Exception e) {
+					t.sendResponseHeaders(504, -1);
+					e.printStackTrace();
+				}
         	}
         	else {
         		t.sendResponseHeaders(404, -1);

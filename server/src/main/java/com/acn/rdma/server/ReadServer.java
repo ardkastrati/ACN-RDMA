@@ -57,67 +57,87 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 		//create a server endpoint
 		RdmaServerEndpoint<ReadServer.CustomServerEndpoint> serverEndpoint = endpointGroup.createServerEndpoint();
 		
-		//we can call bind on a server endpoint, just like we do with sockets
+		// we can call bind on a server endpoint, just like we do with sockets
 		URI uri = URI.create("rdma://" + ipAddress + ":" + 1919);
 		serverEndpoint.bind(uri);
 		System.out.println("ReadServer::server bound to address" + uri.toString());
 		
-		//we can accept new connections
+		// we can accept new connections
 		ReadServer.CustomServerEndpoint endpoint = serverEndpoint.accept();
 		System.out.println("ReadServer::connection accepted ");
 		
-		//in our custom endpoints we make sure CQ events get stored in a queue, we now query that queue for new CQ events.
-		//in this case a new CQ event means we have received data, i.e., a message from the client.		
-		endpoint.getWcEvents().take();
-		System.out.println("SimpleServer::message received");
-		ByteBuffer recvBuf = endpoint.getRecvBuf();
+		while (true) {
+			// initialize the receive to receive new messages: HACK
+			endpoint.initRecv();
+			
+			// wait until a message from the client is received
+			System.out.println("waiting for new messages");
+			endpoint.getWcEvents().take();
+			ByteBuffer recvBuf = endpoint.getRecvBuf();
+			recvBuf.clear();
+			System.out.println("ReadServer::message received: " + recvBuf.asCharBuffer().toString());
+			
+			
+			// check which request is in the message
+			if (recvBuf.asCharBuffer().toString().substring(0, 9).equals("GET Index")) {
+				// place the data in a data buffer to be 'RDMA read' by the client
+			
+				ByteBuffer dataBuf = endpoint.getDataBuf();
+				IbvMr dataMr = endpoint.getDataMr();
+	
+				// dump 'index.html' to a String
+				String htmlFile = null;
+				try {
+					htmlFile = fileToString();
+				} catch (Exception e) {
+					System.out.println("Could not read the file");
+					e.printStackTrace();
+					System.exit(-1);
+				}
 		
-		recvBuf.clear();
-		System.out.println(recvBuf.asCharBuffer().toString());
-		
-		
-		//let's prepare a message to be sent to the client
-		//in the message we include the RDMA information of a local buffer which we allow the client to read using a one-sided RDMA operation
-		ByteBuffer dataBuf = endpoint.getDataBuf();
-		IbvMr dataMr = endpoint.getDataMr();
-
-		String htmlFile = null;
-		try {
-			htmlFile = fileToString();
-		} catch (Exception e) {
-			System.out.println("Could not read the file");
-			e.printStackTrace();
-			System.exit(-1);
+				// put 'index.html' content in the buffer to be 'RDMA read'
+				dataBuf.asCharBuffer().put(htmlFile);
+				dataBuf.clear();
+				
+				// prepare a message with the RDMA information of the data buffer
+				// it we allow the client to read using a one-sided RDMA operation			
+				ByteBuffer sendBuf = endpoint.getSendBuf();
+				sendBuf.putLong(dataMr.getAddr());
+				sendBuf.putInt(dataMr.getLength());
+				sendBuf.putInt(dataMr.getLkey());
+				sendBuf.clear();	
+				
+				//post the operation to send the message
+				endpoint.postSend(endpoint.getWrList_send()).execute().free();
+				//we have to wait for the CQ event, only then we know the message has been sent out
+				endpoint.getWcEvents().take();
+				System.out.println("ReadServer::sent RDMA info message");
+	
+				// wait for a notification from the client saying the RMDA data was read
+				endpoint.getWcEvents().take();
+				System.out.println("ReadServer::client read RDMA buffer");	
+			}
+			else if (recvBuf.asCharBuffer().toString().substring(0, 7).equals("GET Png")) {
+				// TODO
+				System.out.println("TODO");
+			}
+			else {
+				System.out.println("Unknown message");
+			}
 		}
-
-		dataBuf.asCharBuffer().put(htmlFile);
-		//dataBuf.asCharBuffer().put("This is a RDMA/read on stag " + dataMr.getLkey() + " !");
-		System.out.println(dataBuf.asCharBuffer().toString());
-		dataBuf.clear();
-		
-		
-		ByteBuffer sendBuf = endpoint.getSendBuf();
-		sendBuf.putLong(dataMr.getAddr());
-		sendBuf.putInt(dataMr.getLength());
-		sendBuf.putInt(dataMr.getLkey());
-		sendBuf.clear();	
-		
-		//post the operation to send the message
-		System.out.println("ReadServer::sending message");
-		endpoint.postSend(endpoint.getWrList_send()).execute().free();
-		//we have to wait for the CQ event, only then we know the message has been sent out
-		endpoint.getWcEvents().take();
-		
-		//let's wait for the final message to be received. We don't need to check the message itself, just the CQ event is enough.
-		endpoint.getWcEvents().take();
-		System.out.println("ReadServer::final message");
 		
 		//close everything
-		endpoint.close();
-		serverEndpoint.close();
-		endpointGroup.close();
+		//endpoint.close();
+		//serverEndpoint.close();
+		//endpointGroup.close();
 	}	
 	
+	/**
+	 * Converts index.html to a string
+	 * 
+	 * @return string with the content of index.html
+	 * @throws Exception
+	 */
 	private String fileToString() throws Exception {
 		BufferedReader br = new BufferedReader(new FileReader(
 				"/home/student/ACN-RDMA/server/src/main/java/com/acn/rdma/server/static_content/index.html"));
@@ -130,8 +150,6 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 				sb.append(System.lineSeparator());
 				line = br.readLine();
 			}
-			
-//			sb.deleteCharAt(sb.length() - 1);
 			
 			String everything = sb.toString();
 			return everything;
@@ -243,7 +261,23 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 			sendWR.setSg_list(sgeList);
 			sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
 			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
-			wrList_send.add(sendWR);
+			wrList_send.add(sendWR);		
+			
+			initRecv();
+		}
+		
+		/**
+		 * XXX
+		 * Hack to be able to receive more than one message
+		 * I am pretty sure this is not the correct way to do it but it works
+		 * 
+		 * @throws IOException
+		 */
+		public void initRecv() throws IOException {
+			this.sgeRecv = new IbvSge();
+			this.sgeListRecv = new LinkedList<IbvSge>();
+			this.wrList_recv = new LinkedList<IbvRecvWR>();	
+			this.recvWR = new IbvRecvWR();
 			
 			sgeRecv.setAddr(recvMr.getAddr());
 			sgeRecv.setLength(recvMr.getLength());
@@ -254,7 +288,7 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 			recvWR.setWr_id(2001);
 			wrList_recv.add(recvWR);
 			
-			this.postRecv(wrList_recv).execute();		
+			this.postRecv(wrList_recv).execute().free();
 		}
 		
 		public void dispatchCqEvent(IbvWC wc) throws IOException {

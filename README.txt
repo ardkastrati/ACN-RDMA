@@ -1,9 +1,3 @@
-IMPORTANT:
-Server.java and SendRecvClient.java are not being used
-However they contain code that will be important once
-we enable the client to both send and read
-
-
 To redirect Mozilla Firefox brower to the client proxy:
 
 Edit -> Preferences -> Advanced -> Network -> Settings ->
