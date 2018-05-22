@@ -136,13 +136,11 @@ public class RdmaWebpageHandler implements HttpHandler {
     	else if (t.getRequestURI().toString().equals(RDMA_WEBPAGE_IMAGE)) {
     		try {
 				String image = requestImage();
-				
-				t.sendResponseHeaders(200, image.length());
+				byte[] decoded = Base64.getMimeDecoder().decode(image.getBytes());
+				t.sendResponseHeaders(200, decoded.length);
 				t.getResponseHeaders().set("Content-Type", "image/png");
 				logger.debug("Sending 200 for the image back to the browser...");
 				OutputStream os = t.getResponseBody();
-				byte[] decoded = Base64.getMimeDecoder().decode(image.getBytes());
-				logger.debug("Bytes decoded: " + decoded);
         		os.write(decoded);
         		os.close();
         		logger.debug("Sent the response back.");
