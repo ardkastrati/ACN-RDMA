@@ -65,9 +65,15 @@ public class ClientProxy2 {
 
 
 	private void startInterceptionFromBrowser(ClientRdmaConnection rdmaConnection) throws IOException {
+		// create a handler for the index.html file
 		HttpServer server = HttpServer.create(new InetSocketAddress(interceptionPort), 0);
-        server.createContext("/", new RdmaWebpageHandler(rdmaConnection));
+        server.createContext("/", new RdmaIndexHandler(rdmaConnection));
         server.setExecutor(null); // creates a default executor
+        
+        // create a handler for the image
+        server.createContext("/network.png", new RdmaImageHandler(rdmaConnection));
+        server.setExecutor(null);
+        
         server.start();
 	}
     
