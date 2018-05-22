@@ -13,8 +13,14 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-
+  
+  
   <dependencies>
+  	<dependency>
+		<groupId>log4j</groupId>
+		<artifactId>log4j</artifactId>
+		<version>1.2.17</version>
+  	</dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -34,9 +40,10 @@
 			<!-- Build an executable jar -->
 			<artifactId>maven-assembly-plugin</artifactId>
 			<configuration>
+				<source>1.7</source>
 				<archive>
 					<manifest>
-						<mainClass>com.acn.rdma.client_proxy.ClientProxy</mainClass>
+						<mainClass>com.acn.rdma.client_proxy.ClientApplication</mainClass>
 					</manifest>
 				</archive>
 				<descriptorRefs>

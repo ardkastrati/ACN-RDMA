@@ -76,8 +76,6 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		IbvWC wc = endpoint.getWcEvents().take();
 		System.out.println("SimpleClient::message sent, wr_id " + wc.getWr_id());
 		
-		
-		
 		// XXX Hack: reconfigure sgeSend to be able to 'RDMA read'
 		endpoint.readInit();
 		

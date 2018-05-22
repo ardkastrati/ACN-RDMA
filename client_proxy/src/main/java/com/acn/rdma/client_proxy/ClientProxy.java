@@ -39,7 +39,7 @@ public class ClientProxy {
     		this.rdmaClient = rdmaClient;
     	}
     	
-        @Override
+        //@Override
         public void handle(HttpExchange t) throws IOException {
         	System.out.println(t.getRequestURI());
         	if (t.getRequestURI().toString().equals("http://www.rdmawebpage.com/")) {
