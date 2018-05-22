@@ -121,7 +121,7 @@ public class RdmaWebpageHandler implements HttpHandler {
 			}
         	
         	if (index != null) {
-        		logger.debug("Sending 200 back to the browser...");
+        		logger.debug("Sending 200 for the html file back to the browser...");
         		t.sendResponseHeaders(200, index.length());
         		OutputStream os = t.getResponseBody();
         		os.write(index.getBytes());
@@ -139,14 +139,16 @@ public class RdmaWebpageHandler implements HttpHandler {
 				
 				t.sendResponseHeaders(200, image.length());
 				t.getResponseHeaders().set("Content-Type", "image/png");
-				logger.debug("Sending 200 back to the browser...");
+				logger.debug("Sending 200 for the image back to the browser...");
 				OutputStream os = t.getResponseBody();
-				byte[] decoded = Base64.getDecoder().decode(image.getBytes());
+				byte[] decoded = Base64.getMimeDecoder().decode(image.getBytes());
+				logger.debug("Bytes decoded: " + decoded);
         		os.write(decoded);
         		os.close();
         		logger.debug("Sent the response back.");
 			} catch (Exception e) {
 				logger.debug("Sending 504 (Gateway Time-out) back to the browser...");
+				logger.debug(e.getMessage());
 				t.sendResponseHeaders(504, 0);
 				e.printStackTrace();
 			}
