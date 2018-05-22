@@ -51,7 +51,7 @@ public class ClientApplication {
 			System.exit(1);
 		}
 		
-		ClientProxy2 proxy = new ClientProxy2(SERVER_IP, SERVER_PORT, INTERCEPTION_PORT);
+		ClientProxy proxy = new ClientProxy(SERVER_IP, SERVER_PORT, INTERCEPTION_PORT);
 		try {
 			logger.debug("Starting the proxy...");
 			proxy.start();

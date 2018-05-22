@@ -1,90 +1,80 @@
 package com.acn.rdma.client_proxy;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
+import org.apache.log4j.Logger;
+
 import com.sun.net.httpserver.HttpServer;
-import com.sun.net.httpserver.Headers;
 
-/*
+
+/**
+ * This class implements the client proxy. 
+ * The proxy has two duties. On the one hand, it established a RDMA connection to the server.
+ * On the other hand, it intercepts the requests from the browser (for example Mozilla) 
+ * and forward them to the server by using the previously established RDMA connection.
+ * 
+ * @see ClienRdmaConnection
+ * @see RdmaWebPageHandler
+ * @version 1
+ */
 @SuppressWarnings("restriction")
 public class ClientProxy {
+	private static final Logger logger = Logger.getLogger(ClientProxy.class);
+	
+	private String serverIpAddress;
+	private int serverPort;
+	private int interceptionPort;
+	
+	/**
+     * Creates a proxy. 
+     * 
+     * @param ipAddress the IP where the proxy should forward the data.
+     * @param serverPort the port where the proxy should forward the data.
+     * @param interceptionPort the port where the proxy should wait for the HTTP requests sent from the browser.
+     */
+	public ClientProxy(String serverIpAddress, int serverPort, int interceptionPort) {
+		this.serverIpAddress = serverIpAddress;
+		this.serverPort = serverPort;
+		this.interceptionPort = interceptionPort;
+	}
+	
+	
+	/**
+	 * Starts the proxy, which has two duties. Create a RDMA connection to the server. 
+	 * Secondly, it also creates an HTTP server in the client, whose duty is to intercept
+	 * the HTTP requests from the browser. 
+	 * @throws Exception 
+	 */
+	public void start() throws Exception {
+		logger.debug("Connecting to the server...");
+		ClientRdmaConnection rdmaConnectionToServer = createRDMAConnectionToServer();
+		logger.debug("Successfully connected to the server.");
+		logger.debug("Starting interception from the browser...");
+		startInterceptionFromBrowser(rdmaConnectionToServer);
+		logger.debug("Interception started.");
+	}
+	
+	
+	private ClientRdmaConnection createRDMAConnectionToServer() throws Exception {
+		logger.debug("Creating a RDMA connection.");
+		ClientRdmaConnection connection = new ClientRdmaConnection();
+		connection.rdmaConnect(serverIpAddress, serverPort);
+		return connection;
+	}
 
-    public static void main(String[] args) throws Exception {
-    	ReadClient rdmaClient = new ReadClient();
-    	rdmaClient.launch(args);
-        
-    	HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
-        server.createContext("/", new MyHandler(rdmaClient));
+
+	private void startInterceptionFromBrowser(ClientRdmaConnection rdmaConnection) throws IOException {
+		// create a handler for the index.html file
+		HttpServer server = HttpServer.create(new InetSocketAddress(interceptionPort), 0);
+        server.createContext("/", new RdmaIndexHandler(rdmaConnection));
         server.setExecutor(null); // creates a default executor
+        
+        // create a handler for the image
+        server.createContext("/network.png", new RdmaImageHandler(rdmaConnection));
+        server.setExecutor(null);
+        
         server.start();
-    }
-    
-
-    static class MyHandler implements HttpHandler {
-    	
-    	private ReadClient rdmaClient;
-    	
-    	public MyHandler(ReadClient rdmaClient) {
-    		this.rdmaClient = rdmaClient;
-    	}
-    	
-        //@Override
-        public void handle(HttpExchange t) throws IOException {
-        	System.out.println(t.getRequestURI());
-        	if (t.getRequestURI().toString().equals("http://www.rdmawebpage.com/")) {
-            	System.out.println(t.getRequestMethod());
-            	Headers headers = t.getRequestHeaders();
-            	//printMap(headers);
-            	InputStream is = t.getRequestBody();
-            	
-            	System.out.println(t.getRequestURI());
-            	
-            	String index = null;
-            	try {
-					index = this.rdmaClient.requestIndex();
-					
-				} catch (Exception e) {
-					t.sendResponseHeaders(504, -1);
-					e.printStackTrace();
-				}
-            	
-            	if (index != null) {
-            		System.out.println("Sending 200");
-            		t.sendResponseHeaders(200, index.length());
-            		OutputStream os = t.getResponseBody();
-            		os.write(index.getBytes());
-            		os.close();
-            	}
-            	else {
-            		System.out.println("Sending 504");
-            		t.sendResponseHeaders(504, -1);
-            	}
-        	}
-        	else if (t.getRequestURI().toString().equals("http://www.rdmawebpage.com/network.png")) {
-        		try {
-					this.rdmaClient.requestImage();
-				} catch (Exception e) {
-					t.sendResponseHeaders(504, -1);
-					e.printStackTrace();
-				}
-        	}
-        	else {
-        		t.sendResponseHeaders(404, -1);
-        	}
-        	
-        }
-    }
+	}
     
 }
-*/
