@@ -2,8 +2,10 @@ package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.util.Base64;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 
 import com.sun.net.httpserver.Headers;
@@ -139,7 +141,8 @@ public class RdmaWebpageHandler implements HttpHandler {
 				t.getResponseHeaders().set("Content-Type", "image/png");
 				logger.debug("Sending 200 back to the browser...");
 				OutputStream os = t.getResponseBody();
-        		os.write(Base64.getDecoder().decode(image), 0, Base64.getDecoder().decode(image).length);
+				byte[] decoded = Base64.getDecoder().decode(image.getBytes());
+        		os.write(decoded);
         		os.close();
         		logger.debug("Sent the response back.");
 			} catch (Exception e) {

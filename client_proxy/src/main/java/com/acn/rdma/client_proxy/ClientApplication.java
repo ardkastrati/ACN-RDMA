@@ -1,7 +1,5 @@
 package com.acn.rdma.client_proxy;
 
-import java.io.IOException;
-
 import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 

@@ -18,7 +18,7 @@
  * limitations under the License.
  *
  */
-
+/*
 package com.acn.rdma.server;
 
 import java.io.BufferedReader;
@@ -138,6 +138,7 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 	 * @return string with the content of index.html
 	 * @throws Exception
 	 */
+/*
 	private String fileToString() throws Exception {
 		BufferedReader br = new BufferedReader(new FileReader(
 				"/home/student/ACN-RDMA/server/src/main/java/com/acn/rdma/server/static_content/index.html"));
@@ -273,6 +274,7 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 		 * 
 		 * @throws IOException
 		 */
+/*
 		public void initRecv() throws IOException {
 			this.sgeRecv = new IbvSge();
 			this.sgeListRecv = new LinkedList<IbvSge>();
@@ -341,4 +343,5 @@ public class ReadServer implements RdmaEndpointFactory<ReadServer.CustomServerEn
 	}
 	
 }
+*/
 

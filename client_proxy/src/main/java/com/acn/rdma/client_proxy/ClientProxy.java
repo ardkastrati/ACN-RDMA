@@ -16,7 +16,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.Headers;
 
-
+/*
 @SuppressWarnings("restriction")
 public class ClientProxy {
 
@@ -87,3 +87,4 @@ public class ClientProxy {
     }
     
 }
+*/

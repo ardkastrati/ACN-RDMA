@@ -4,9 +4,11 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileReader;
+import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Base64;
+import org.apache.commons.io.IOUtils;
 
 import javax.imageio.ImageIO;
 
@@ -28,6 +30,9 @@ import org.apache.log4j.Logger;
  */
 public class Server {
 	private static final Logger logger = Logger.getLogger(Server.class);
+	private static final String INDEX_PATH = "static_content/index.html";
+	private static final String IMAGE_PATH = "static_content/network.png";
+	
 	
 	private static final int RECEIVE_ID = 500;
 	
@@ -126,21 +131,11 @@ public class Server {
 	 * @throws Exception
 	 */
 	private String imageToString() throws IOException {
-		 
-		 String imageString = null;
-	     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	     BufferedImage image = ImageIO.read(new File(
-	    		 "/home/student/Documents/ACN-RDMA/server/src/main/java/com/acn/rdma/server/static_content/network.png"));
-	 
-	     try {
-	         ImageIO.write(image, "png", bos);
-	         byte[] imageBytes = bos.toByteArray();
-	         imageString = Base64.getEncoder().encodeToString(imageBytes);;
-	         return imageString;
-	        
-	     } finally {
-        	 bos.close();
-         }
+		 InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(IMAGE_PATH);
+	     byte[] imageBytes = IOUtils.toByteArray(is);
+	     byte[] encoded = Base64.getEncoder().encode(imageBytes);
+	     String imageString = new String(encoded);
+	     return imageString;
 	}
  	
 	/**
@@ -150,8 +145,9 @@ public class Server {
 	 * @throws Exception
 	 */
 	private String fileToString() throws Exception {
-		BufferedReader br = new BufferedReader(new FileReader(
-				"/home/student/Documents/ACN-RDMA/server/src/main/java/com/acn/rdma/server/static_content/index.html"));
+		
+		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(INDEX_PATH);
+		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 		try {
 			StringBuilder sb = new StringBuilder();
 			String line = br.readLine();

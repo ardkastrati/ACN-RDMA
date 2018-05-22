@@ -18,7 +18,7 @@
  * limitations under the License.
  *
  */
-
+/*
 package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
@@ -269,6 +269,7 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		 * I am pretty sure this is not the correct way to do it but it works
 		 * 
 		 */
+/*
 		public void sendInit() {
 			this.wrList_send = new LinkedList<IbvSendWR>();	
 			this.sgeSend = new IbvSge();
@@ -292,6 +293,7 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 		 * 
 		 * @throws IOException
 		 */
+/*
 		public void readInit() {
 			this.wrList_send = new LinkedList<IbvSendWR>();	
 			this.sgeSend = new IbvSge();
@@ -348,4 +350,5 @@ public class ReadClient implements RdmaEndpointFactory<ReadClient.CustomClientEn
 	}
 	
 }
+*/
 
