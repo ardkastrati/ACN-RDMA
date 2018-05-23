@@ -5,15 +5,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.util.Base64;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
-
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-
-import sun.misc.BASE64Encoder;
-import sun.misc.BASE64Decoder;
 
 /**
  * This class represents the interceptor. It intercepts the requests from the browser (for example Mozilla) 
@@ -22,30 +14,12 @@ import sun.misc.BASE64Decoder;
  * @version 1
  */
 @SuppressWarnings("restriction")
-public class RdmaImageHandler implements HttpHandler {
+public class RdmaImageHandler extends RdmaHandler {
 	
-	private static final Logger logger = Logger.getLogger(RdmaImageHandler.class);
-	
-	private static final String RDMA_WEBPAGE_URL_PREFIX = "www.rdmawebpage.com";
-	private static final String GET_IMAGE = "Get Png";
-	private static final String FINAL_SIGNAL_MESSAGE = "Everything went fine";
-	
-	private static final int GET_IMAGE_ID = 2000;
-	private static final int RDMA_READ_IMAGE_ID = 2001;
-	
-	private static final int FINAL_SIGNAL_ID = 3000;
-	
-	private ClientRdmaConnection rdmaConnection;
-	
-	/**
-	 * Constructs the interceptor with the given RDMA connection, where it forwards the data intercepted.
-	 * @param rdmaConnection the connection to forward the data.
-	 */
 	public RdmaImageHandler(ClientRdmaConnection rdmaConnection) {
-		this.rdmaConnection = rdmaConnection;
+		super(rdmaConnection);
 	}
-	
-	
+
 	private byte[] requestImage() throws IOException, InterruptedException {
 		rdmaConnection.rdmaSend(GET_IMAGE.getBytes(), GET_IMAGE_ID);
 		logger.debug("Requested the image with the request " + GET_IMAGE + " and id " + GET_IMAGE_ID);
@@ -95,20 +69,13 @@ public class RdmaImageHandler implements HttpHandler {
         		os.close();
         		logger.debug("Sent the response back.");
 			} catch (Exception e) {
-				logger.debug("Sending 504 (Gateway Time-out) back to the browser...");
 				logger.debug(e.getMessage());
-				t.sendResponseHeaders(504, 0);
 				e.printStackTrace();
+				send504Error(t);
 			}
     	}
     	else {
-    		logger.debug("Sending 404 back back to the browser...");
-    		String error = "404 error";
-    		t.sendResponseHeaders(404, error.length());
-    		OutputStream os = t.getResponseBody();
-    		os.write(error.getBytes());
-    		os.close();
-    		t.getResponseBody().close();
+    		send404Error(t);
     	}
     	
     }

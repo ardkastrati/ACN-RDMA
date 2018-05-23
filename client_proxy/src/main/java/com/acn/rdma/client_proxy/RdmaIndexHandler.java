@@ -2,18 +2,8 @@ package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
-import java.util.Base64;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
-
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-
-import sun.misc.BASE64Encoder;
-import sun.misc.BASE64Decoder;
 
 /**
  * This class represents the interceptor. It intercepts the requests from the browser (for example Mozilla) 
@@ -22,31 +12,14 @@ import sun.misc.BASE64Decoder;
  * @version 1
  */
 @SuppressWarnings("restriction")
-public class RdmaIndexHandler implements HttpHandler {
+public class RdmaIndexHandler extends RdmaHandler {
 	
-	private static final Logger logger = Logger.getLogger(RdmaIndexHandler.class);
 	
-	private static final String RDMA_WEBPAGE_URL_PREFIX = "www.rdmawebpage.com";	
-	private static final String GET_INDEX = "Get Index";
-	private static final String FINAL_SIGNAL_MESSAGE = "Everything went fine";
-	
-	private static final int GET_INDEX_ID = 1000; 
-	private static final int RDMA_READ_INDEX_ID = 1001;
-	
-	private static final int FINAL_SIGNAL_ID = 3000;
-	
-	private ClientRdmaConnection rdmaConnection;
-	
-	/**
-	 * Constructs the interceptor with the given RDMA connection, where it forwards the data intercepted.
-	 * @param rdmaConnection the connection to forward the data.
-	 */
 	public RdmaIndexHandler(ClientRdmaConnection rdmaConnection) {
-		this.rdmaConnection = rdmaConnection;
+		super(rdmaConnection);
 	}
-	
-	
-	
+
+
 	private byte[] requestIndex() throws IOException, InterruptedException {
 		rdmaConnection.rdmaSend(GET_INDEX.getBytes(), GET_INDEX_ID);
 		logger.debug("Sent a " + GET_INDEX + " with id " + GET_INDEX_ID + " to the server.");
@@ -80,7 +53,6 @@ public class RdmaIndexHandler implements HttpHandler {
 	 * If the communication between the proxy and the server fails, the proxy replies with HTTP 504 (Gateway Time-out).
 	 * </p>
 	 */
-    //@Override
     public void handle(HttpExchange t) throws IOException {
     	logger.debug("Starting to handle the request " + t.getRequestURI());
     	
@@ -90,9 +62,10 @@ public class RdmaIndexHandler implements HttpHandler {
         	byte[] index = null;
         	try {
 				index = requestIndex();
-			} catch (Exception e) {
-				t.sendResponseHeaders(504, -1);
+        	} catch (Exception e) {
+				logger.debug(e.getMessage());
 				e.printStackTrace();
+				send504Error(t);
 			}
         	
         	if (index != null) {
@@ -105,17 +78,11 @@ public class RdmaIndexHandler implements HttpHandler {
         	}
         	else {
         		logger.debug("Sending 504 (Gateway Time-out) back to the browser...");
-        		t.sendResponseHeaders(504, -1);
+        		send504Error(t);
         	}
     	}
     	else {
-    		logger.debug("Sending 404 back back to the browser...");
-    		String error = "404 error";
-    		t.sendResponseHeaders(404, error.length());
-    		OutputStream os = t.getResponseBody();
-    		os.write(error.getBytes());
-    		os.close();
-    		t.getResponseBody().close();
+    		send404Error(t);
     	}
     	
     }
