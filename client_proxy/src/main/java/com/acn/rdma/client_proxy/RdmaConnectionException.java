@@ -1,5 +1,4 @@
-package edu.kit.informatik;
-
+package com.acn.rdma.client_proxy;
 /**
  * The RdmaConnectionException occurs when an error occured during the communication in the rdma
  * connection between the client and the browser .

@@ -1,4 +1,4 @@
-package edu.kit.informatik;
+package com.acn.rdma.server;
 
 /**
  * The RdmaConnectionException occurs when an error occured during the communication in the rdma
