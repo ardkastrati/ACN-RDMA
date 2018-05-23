@@ -127,9 +127,9 @@ public class Server {
 	
 
 	/**
-	 * Converts network.png to a string
+	 * Converts network.png to a byte array
 	 * 
-	 * @return string with the content of network.png
+	 * @return byte array with the content of network.png
 	 * @throws IOException 
 	 * @throws Exception
 	 */
@@ -141,33 +141,15 @@ public class Server {
 	}
  	
 	/**
-	 * Converts index.html to a string
+	 * Converts index.html to a byte array
 	 * 
-	 * @return string with the content of index.html
+	 * @return byte array with the content of index.html
 	 * @throws Exception
 	 */
 	private byte[] fileToBytes() throws Exception {
 		
 		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(INDEX_PATH);
 		return IOUtils.toByteArray(is);
-		/*
-		BufferedReader br = new BufferedReader(new InputStreamReader(is));
-		try {
-			StringBuilder sb = new StringBuilder();
-			String line = br.readLine();
-			
-			while (line != null) {
-				sb.append(line);
-				sb.append(System.lineSeparator());
-				line = br.readLine();
-			}
-			
-			String everything = sb.toString();
-			return everything;
-			
-		} finally {
-			br.close();
-		}*/
 	}
  	
 }
