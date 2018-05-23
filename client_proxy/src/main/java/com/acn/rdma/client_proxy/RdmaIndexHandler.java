@@ -50,13 +50,13 @@ public class RdmaIndexHandler implements HttpHandler {
 	private byte[] requestIndex() throws IOException, InterruptedException {
 		rdmaConnection.rdmaSend(GET_INDEX.getBytes(), GET_INDEX_ID);
 		logger.debug("Sent a " + GET_INDEX + " with id " + GET_INDEX_ID + " to the server.");
-		rdmaConnection.receiveRdmaInfo(GET_INDEX_ID);
-		logger.debug("Got from the server the signal for rdma read with the rdma info.");
 		
 		byte[] index = rdmaConnection.rdmaRead(RDMA_READ_INDEX_ID);
 		logger.debug("Got index: " + index);
+		
 		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE.getBytes(), FINAL_SIGNAL_ID);
 		logger.debug("Sent the final signal message " + FINAL_SIGNAL_MESSAGE + " with id " + FINAL_SIGNAL_ID);
+		
 		return index;
 	}
 	

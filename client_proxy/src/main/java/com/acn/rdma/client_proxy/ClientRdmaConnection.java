@@ -102,8 +102,8 @@ public class ClientRdmaConnection {
 		logger.debug("Write on the send buffer the message " + new String(message));
 		postSendOperation(id);
 		logger.debug("Posted the operation.");
-		waitForTransmission();
-		logger.debug("Successfully sent the message.");
+		int length = waitForTransmission();
+		logger.debug("Successfully sent the message with length wc " + length);
 	}
 	
 	/**
@@ -116,27 +116,11 @@ public class ClientRdmaConnection {
 		logger.debug("Created receive operation.");
 		postReceiveOperation();
 		logger.debug("Posted the operation.");
-		waitForTransmission();
-		logger.debug("Operation transmitted successfully.");
+		int length = waitForTransmission();
+		logger.debug("Operation transmitted successfully with length wc " + length);
 		byte[] message = readOnRecvBuffer();
 		logger.debug("Read on the receive buffer " + new String(message));
 		return message;
-	}
-	
-	/**
-	 * Receive the information of the remote buffer.
-	 * @param message
-	 * @param id
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public void receiveRdmaInfo(int id) throws IOException, InterruptedException {
-		createRecvOperation(id);
-		logger.debug("Created receive operation.");
-		postReceiveOperation();
-		logger.debug("Posted the operation.");
-		waitForTransmission();
-		logger.debug("RDMA info is ready.");
 	}
 	
 	/**
@@ -148,18 +132,36 @@ public class ClientRdmaConnection {
 	 */
 	public byte[] rdmaRead(int id) throws IOException, InterruptedException {
 		
+		receiveRdmaInfo(id);
+		
 		createRdmaReadOperation();
 		logger.debug("Created a rdma read operation.");
 		postSendOperation(id);
 		logger.debug("Sent the operation.");
 		//wait for the confirmation that the RDMA send operation was sent
-		waitForTransmission();
-		logger.debug("Confirmed the transmission.");
+		int length = waitForTransmission();
+		logger.debug("Confirmed the transmission with wc length " + length);
 		//access the data in our own buffer
 		byte[] message = readOnSendBuffer();
 		logger.debug("RDMA read " + new String(message));
 		
 		return message;
+	}
+	
+	/**
+	 * Receive the information of the remote buffer.
+	 * @param message
+	 * @param id
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	private void receiveRdmaInfo(int id) throws IOException, InterruptedException {
+		createRecvOperation(id);
+		logger.debug("Created receive operation.");
+		postReceiveOperation();
+		logger.debug("Posted the operation.");
+		int length = waitForTransmission();
+		logger.debug("RDMA info is ready with length wc " + length);
 	}
 	
 	
@@ -169,10 +171,11 @@ public class ClientRdmaConnection {
 	 */
 	//TODO: Maybe we can do better and not simply blindly wait for next event, but instead check what the event actually is.
 	// Nonetheless, it works this way as well (in the Github examples it is the same).
-	private void waitForTransmission() throws InterruptedException {
+	private int waitForTransmission() throws InterruptedException {
 		// take the event confirming that the message was sent
 		IbvWC wc = clientEndpoint.getWcEvents().take();
 		logger.debug("Message transmitted, wr_id " + wc.getWr_id());
+		return wc.getByte_len();
 	}
 	
 	/**

@@ -50,12 +50,10 @@ public class RdmaImageHandler implements HttpHandler {
 		rdmaConnection.rdmaSend(GET_IMAGE.getBytes(), GET_IMAGE_ID);
 		logger.debug("Requested the image with the request " + GET_IMAGE + " and id " + GET_IMAGE_ID);
 		
-		rdmaConnection.receiveRdmaInfo(GET_IMAGE_ID);
-		logger.debug("Got from the server the signal for rdma read with the rdma info.");
-		
 		//read the image!
 		byte[] image = rdmaConnection.rdmaRead(RDMA_READ_IMAGE_ID);
 		logger.debug("Got image: " + new String(image));
+		
 		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE.getBytes(), FINAL_SIGNAL_ID);
 		logger.debug("Sent the final signal message " + new String(FINAL_SIGNAL_MESSAGE) + " with id " + FINAL_SIGNAL_ID);
 		return image;
