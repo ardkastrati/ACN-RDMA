@@ -11,8 +11,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 /**
- * This class represents the interceptor. It intercepts the requests from the browser (for example Mozilla) 
- * and forwards them to the server by using a RDAM connection. The connection must be given during the construction
+ * This class represents the interceptor. It intercepts the requests from the browser (for example Mozilla browser) 
+ * and forwards them to the server by using a RDMA connection. The connection must be given during the construction
  * of the class.
  * @version 1
  */
@@ -45,7 +45,11 @@ public abstract class RdmaHandler implements HttpHandler {
 		this.rdmaConnection = rdmaConnection;
 	}
 	
-	
+	/**
+	 * Responds with a 404 error.
+	 * @param t
+	 * @throws IOException
+	 */
 	protected void send404Error(HttpExchange t) throws IOException {
 		logger.debug("Sending 404 back back to the browser...");
 		byte[] errorBody = getErrorBody(404);
@@ -54,8 +58,14 @@ public abstract class RdmaHandler implements HttpHandler {
 		os.write(errorBody);
 		os.close();
 		t.getResponseBody().close();
+		logger.debug("Sent the response back.");
 	}
 	
+	/**
+	 * Responds with a 504 error.
+	 * @param t
+	 * @throws IOException
+	 */
 	protected void send504Error(HttpExchange t) throws IOException {
 		logger.debug("Sending 504 (Gateway Time-out) back to the browser...");
 		byte[] errorBody = getErrorBody(504);
@@ -64,6 +74,7 @@ public abstract class RdmaHandler implements HttpHandler {
 		os.write(errorBody);
 		os.close();
 		t.getResponseBody().close();
+		logger.debug("Sent the response back.");
 	}
 	
     protected byte[] getErrorBody(int errorCode) {
@@ -91,10 +102,10 @@ public abstract class RdmaHandler implements HttpHandler {
     
     
 	/**
-	 * Converts index.html to a byte array
+	 * Converts a file to a byte array.
 	 * 
 	 * @param path the path to the file
-	 * @return byte array with the content of index.html
+	 * @return byte array with the content of the files in bytes.
 	 * @throws IOException 
 	 * @throws Exception
 	 */

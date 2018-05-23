@@ -73,7 +73,7 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 	
 	
 	/**
-	 * Constructs the <tt>ServerEndpoin</tt>. Creates the buffers, working request lists and the working 
+	 * Constructs the <tt>ServerEndpoint</tt>. Creates the buffers, working request lists and the working 
 	 * completion event.
 	 * @param endpointGroup
 	 * @param idPriv
@@ -109,10 +109,9 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 	
 	
 	/**
-	 * This method deals with specifics of the <tt>ServerEndpoint</tt>, that are necessary for the completion
-	 * of the assignment. It initializes the buffers and binds them to the memory regions of the RDMA device.
-	 * It also initializes the scatter/gather element for the send and receive operations. In the end, it
-	 * posts an receive operation.
+	 * This method deals with specifics of the <tt>ServerEndpoint</tt>. It initializes the buffers and 
+	 * binds them to the memory regions of the RDMA device. It also initializes the scatter/gather 
+	 * element for the send and receive operations. In the end, it posts an receive operation.
 	 */
 	//important: we override the init method to prepare some buffers (memory registration, post recv, etc). 
 	//This guarantees that at least one recv operation will be posted at the moment this endpoint is connected. 
@@ -186,42 +185,84 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 		wcEvents.add(wc);
 	}
 	
+	/**
+	 * Get the working completion event.
+	 * @see IbvWC
+	 * @return {@link ArrayBlockingQueue}
+	 */
 	public ArrayBlockingQueue<IbvWC> getWcEvents() {
 		return wcEvents;
 	}		
-
+	
+	/**
+	 * Get the send working list.
+	 * @see IbvSendWR
+	 * @return {@link LinkedList}
+	 */
 	public LinkedList<IbvSendWR> getWrList_send() {
 		return wrList_send;
 	}
-
+	
+	/**
+	 * Get the receive working request list.
+	 * @see IbvRecvWR
+	 * @return {@link LinkedList}
+	 */
 	public LinkedList<IbvRecvWR> getWrList_recv() {
 		return wrList_recv;
 	}
-
+	
+	/**
+	 * Get the data buffer.
+	 * @return {@link ByteBuffer}
+	 */
 	public ByteBuffer getDataBuf() {
 		return dataBuf;
 	}
-
+	
+	/**
+	 * Get the send buffer.
+	 * @return {@link ByteBuffer}
+	 */
 	public ByteBuffer getSendBuf() {
 		return sendBuf;
 	}
-
+	
+	/**
+	 * Get the receive buffer. 
+	 * @return {@link ByteBuffer}
+	 */
 	public ByteBuffer getRecvBuf() {
 		return recvBuf;
 	}
-
+	/**
+	 * Get the send working request.
+	 * @return {@link IbvSendWR}
+	 */
 	public IbvSendWR getSendWR() {
 		return sendWR;
 	}
-
+	/**
+	 * Get the receiving working request.
+	 * @return {@link IbvSendWR}
+	 */
 	public IbvRecvWR getRecvWR() {
 		return recvWR;
-	}
+	}	
 	
+	/**
+	 * Changes the size of the Scatter/Gather element that bound to the local buffer. Makes possible to send
+	 * variable-long messages.
+	 * @param length
+	 */
 	public void setSendLength(int length) {
 		sgeSend.setLength(length);
 	}
 	
+	/**
+	 * Get the memory region of the data buffer. Makes possible to inform the client where to do rdma read.
+	 * @return {@link IbvMr}
+	 */
 	public IbvMr getDataMr() {
 		return dataMr;
 	}

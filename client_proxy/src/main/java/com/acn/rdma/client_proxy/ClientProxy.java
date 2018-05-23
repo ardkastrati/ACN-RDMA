@@ -2,19 +2,17 @@ package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-
 import org.apache.log4j.Logger;
-
 import com.sun.net.httpserver.HttpServer;
 
 
 /**
  * This class implements the client proxy. 
  * The proxy has two duties. On the one hand, it established a RDMA connection to the server.
- * On the other hand, it intercepts the requests from the browser (for example Mozilla) 
+ * On the other hand, it intercepts the requests from the browser (for example Mozilla browser)
  * and forward them to the server by using the previously established RDMA connection.
  * 
- * @see ClienRdmaConnection
+ * @see ClientRdmaConnection
  * @see RdmaWebPageHandler
  * @version 1
  */
@@ -50,6 +48,7 @@ public class ClientProxy {
 		logger.debug("Connecting to the server...");
 		ClientRdmaConnection rdmaConnectionToServer = createRDMAConnectionToServer();
 		logger.debug("Successfully connected to the server.");
+		
 		logger.debug("Starting interception from the browser...");
 		startInterceptionFromBrowser(rdmaConnectionToServer);
 		logger.debug("Interception started.");
@@ -57,9 +56,11 @@ public class ClientProxy {
 	
 	
 	private ClientRdmaConnection createRDMAConnectionToServer() throws Exception {
-		logger.debug("Creating a RDMA connection.");
+		logger.debug("Creating a RDMA connection...");
 		ClientRdmaConnection connection = new ClientRdmaConnection();
+		logger.debug("Connecting...");
 		connection.rdmaConnect(serverIpAddress, serverPort);
+		logger.debug("Connected.");
 		return connection;
 	}
 

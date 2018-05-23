@@ -2,15 +2,14 @@ package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.util.Base64;
 
 import com.sun.net.httpserver.HttpExchange;
 
 /**
- * This class represents the interceptor. It intercepts the requests from the browser (for example Mozilla) 
- * and forwards them to the server by using a RDAM connection. The connection must be given during the construction
- * of the class.
+ * The <tt>RdmaImageHandler</tt> class is a specialized <tt>RdmaHandler</tt> for intercepting the requests of
+ * the network image from the browser (for example Mozilla) and forwards them to the server by using a 
+ * RDMA connection. The connection must be given during the construction of the class.
  * @version 1
  */
 @SuppressWarnings("restriction")
@@ -26,18 +25,17 @@ public class RdmaImageHandler extends RdmaHandler {
 		
 		//read the image!
 		byte[] image = rdmaConnection.rdmaRead(RDMA_READ_IMAGE_ID);
-		logger.debug("Got image: " + new String(image));
+		logger.debug("Got image.");
 		
 		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE.getBytes(), FINAL_SIGNAL_ID);
 		logger.debug("Sent the final signal message " + new String(FINAL_SIGNAL_MESSAGE) + " with id " + FINAL_SIGNAL_ID);
 		return image;
 	}
 	
-	/**
-	 * Here the main logic of the assignment is implemented.
+	/**.
 	 * <p>
 	 * The interceptor sends a 404 HTTP Response code back  to the browser unless
-	 * the browser sends a GET / HTTP request to the web server at www.rdmawebpage.com/.
+	 * the browser sends a GET / HTTP request to the web server at www.rdmawebpage.com.
 	 * </p>
 	 * 
 	 * <p>

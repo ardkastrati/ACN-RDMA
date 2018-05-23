@@ -17,7 +17,6 @@ public class ClientApplication {
 	private static final int DEFAULT_INTERCEPTION_PORT = 8000;
 	private static final int DEFAULT_SERVER_PORT = 1919;
 	
-
 	private static String SERVER_IP;
 	private static int SERVER_PORT;
 	private static int INTERCEPTION_PORT;
@@ -30,10 +29,10 @@ public class ClientApplication {
 	 /**
      * The main method is called to start the client application. 
      * The client application implements the client specified in the assignment. 
-     * Firstly, it checks the console arguments for the server IP + port and the the port
+     * Firstly, it checks the console arguments for the server IP + port and the port
      * where the client proxy should intercept the HTTP requests from the browser. Then simply 
      * it executes the proxy in this port and creates a rdma connection to the server. 
-     * Only the IP of the server is mandartory to give, if the other options are not found, it
+     * Only the IP of the server is mandatory to give, if the other options are not found, it
      * uses the default values.
      * 
      * @param args The console argument.
@@ -46,7 +45,6 @@ public class ClientApplication {
 			parseArguments(args);
 			logger.debug("Parsing successful.");
 		} catch (ParseException e) {
-			logger.debug(ERROR_ARGUMENTS);
 			System.out.println(ERROR_ARGUMENTS);
 			System.exit(1);
 		}
@@ -56,14 +54,14 @@ public class ClientApplication {
 			logger.debug("Starting the proxy...");
 			proxy.start();
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
+			logger.debug("An error occured while starting the proxy. " + e.getMessage());
 			System.exit(1);
 		}
 	}
 	
 	
 	
-	public static void parseArguments(String[] args) throws ParseException {
+	private static void parseArguments(String[] args) throws ParseException {
 		Options options = new Options();
 		Option address = Option.builder(SERVER_IP_KEY).required().desc("ip address").hasArg().required().build();
 		Option serverPort = Option.builder(SERVER_PORT_KEY).desc("server port").hasArg().type(Number.class).build();

@@ -23,9 +23,11 @@ import com.ibm.disni.rdma.verbs.SVCPostSend;
  * In return, it offers simple functions for the proxy to communicate with the server. 
  *  <ul>
  *   <li>rdmaConnect</li>
- *   Connects with the server in the given address and port
+ *   Connects with the server in the given address and port.
  *   <li>rdmaSend</li>
- *   Sends a message with an unique ID, which can be processed by the server.
+ *   Sends a message to the server in bytes by using a send working request with an unique ID.
+ *   <li>rdmaReceive</li>
+ *   Receives a message from the server in bytes by using a receive working request with an unique ID.
  *   <li>rdmaRead</li>
  *   Sends a RDMA read request with an unique ID to read data from the server. First, it waits for the server, to
  *   signal the client that the data is ready and where the data actually is.
@@ -74,13 +76,13 @@ public class ClientRdmaConnection {
 	}
 	
 	/**
-	 * It connects the client endpoint with the server.
-	 * @param ipAddress
-	 * @param port
+	 * It tries to connect the client endpoint with the server in the given ip and port.
+	 * @param ipAddress the ipaddress of the server
+	 * @param port the port of the server
 	 * @throws Exception
 	 */
 	public void rdmaConnect(String ipAddress, int port) throws Exception {
-		logger.debug("Trying  to connect to the server with IP " + ipAddress + " and port " + port) ;
+		logger.debug("Trying to connect to the server with IP " + ipAddress + " and port " + port) ;
 		//connect to the server
 		clientEndpoint.connect(URI.create("rdma://" + ipAddress + ":" + port));
 		InetSocketAddress _addr = (InetSocketAddress) clientEndpoint.getDstAddr();
@@ -88,18 +90,18 @@ public class ClientRdmaConnection {
 	}
 	
 	/**
-	 * Sends a message with an unique ID, which can be processed by the server.
-	 * @param message
-	 * @param id
+	 * Sends a message to the server in bytes by using a send working request with an unique ID.
+	 * @param message the message in bytes
+	 * @param id unique ID for the send working request
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
 	public void rdmaSend(byte[] message, int id) throws IOException, InterruptedException {
 		// send a message to the server
 		createWRSendOperation();
-		logger.debug("Create a send operation.");
+		logger.debug("Created a send operation.");
 		writeOnSendBuffer(message);
-		logger.debug("Write on the send buffer the message " + new String(message));
+		logger.debug("Wrote on the send buffer the message.");
 		postSendOperation(id);
 		logger.debug("Posted the operation.");
 		int length = waitForTransmission();
@@ -107,7 +109,8 @@ public class ClientRdmaConnection {
 	}
 	
 	/**
-	 * Gets the request send by the client, returns the id.
+	 * Receives a message from the server in bytes by using a receive working request with an unique ID.
+	 * @param id the id for the unique receive working request.
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
@@ -119,14 +122,15 @@ public class ClientRdmaConnection {
 		int length = waitForTransmission();
 		logger.debug("Operation transmitted successfully with length wc " + length);
 		byte[] message = readOnRecvBuffer();
-		logger.debug("Read on the receive buffer " + new String(message));
+		logger.debug("Read on the receive buffer the message.");
 		return message;
 	}
 	
 	/**
-	 * Sends a RDMA read request with an unique ID to read data from the server. 
-	 * @param id
-	 * @return
+	 * Sends a RDMA read request with an unique ID to read data from the server. First, it waits for the server, to
+	 * signal the client that the data is ready and where the data actually is.
+	 * @param id the unique id for the working request
+	 * @return message the message in bytes
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
@@ -137,13 +141,13 @@ public class ClientRdmaConnection {
 		createRdmaReadOperation();
 		logger.debug("Created a rdma read operation.");
 		postSendOperation(id);
-		logger.debug("Sent the operation.");
+		logger.debug("Sent the rdma read operation.");
 		//wait for the confirmation that the RDMA send operation was sent
 		int length = waitForTransmission();
 		logger.debug("Confirmed the transmission with wc length " + length);
 		//access the data in our own buffer
 		byte[] message = readOnSendBuffer();
-		logger.debug("RDMA read " + new String(message));
+		logger.debug("Read the data.");
 		
 		return message;
 	}
@@ -167,6 +171,7 @@ public class ClientRdmaConnection {
 	
 	/**
 	 * Waits for an event.
+	 * @return int the number of bytes sent during this work completion.
 	 * @throws InterruptedException
 	 */
 	//TODO: Maybe we can do better and not simply blindly wait for next event, but instead check what the event actually is.
@@ -202,7 +207,7 @@ public class ClientRdmaConnection {
 		long addr = recvBuf.getLong();
 		int length = recvBuf.getInt();
 		int lkey = recvBuf.getInt();
-		logger.debug("Found rdma information, addr " + addr + ", length " + length + ", key " + lkey);
+		logger.debug("Got rdma information, addr " + addr + ", length " + length + ", key " + lkey);
 
 		recvBuf.clear();
 		//the RDMA information given above identifies a RDMA buffer at the server side
@@ -217,9 +222,7 @@ public class ClientRdmaConnection {
 		logger.debug("Stored the values in the RDMA read operation.");
 	}
 	
-	/**
-	 *
-	 */
+	
 	private void createRecvOperation(int id) {
 		IbvRecvWR recvWR = clientEndpoint.getRecvWR();
 		recvWR.setWr_id(id);
@@ -232,7 +235,6 @@ public class ClientRdmaConnection {
 	 * @throws IOException
 	 */
 	private void postReceiveOperation() throws IOException {
-		logger.debug("The receive list is " + clientEndpoint.getWrList_recv().toString() + " size " + clientEndpoint.getWrList_recv().size());
 		SVCPostRecv postRecv = clientEndpoint.postRecv(clientEndpoint.getWrList_recv());
 		postRecv.execute().free();
 	}
@@ -245,8 +247,6 @@ public class ClientRdmaConnection {
 	 * This method creates a WR Send operation in the send working queue.
 	 */
 	private void createWRSendOperation() {
-
-		logger.debug("Preparing a WR send message operation...");
 		IbvSendWR sendWR = clientEndpoint.getSendWR();
 		sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
 		sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
@@ -261,7 +261,7 @@ public class ClientRdmaConnection {
 	private void postSendOperation(int id) throws IOException {
 		SVCPostSend postSend = clientEndpoint.postSend(clientEndpoint.getWrList_send());
 		postSend.getWrMod(0).setWr_id(id);
-		postSend.execute().free();//what about RDMA read?
+		postSend.execute().free();
 	}
 	
 	/**
@@ -274,8 +274,6 @@ public class ClientRdmaConnection {
 		sendBuf.putInt(message.length);
 		sendBuf.put(message);
 		sendBuf.clear();
-		logger.debug("Send the buffer with position " + sendBuf.position() + " limit " + 
-				  sendBuf.limit() + " capacity " + sendBuf.capacity());
 		this.clientEndpoint.setSendLength(Integer.SIZE/8 + message.length);
 	}
 	
@@ -285,14 +283,11 @@ public class ClientRdmaConnection {
 	 */
 	private byte[] readOnSendBuffer() {
 		ByteBuffer dataBuf = clientEndpoint.getSendBuf();
-		logger.debug("Reading the buffer with position " + dataBuf.position() + " limit " + 
-				  dataBuf.limit() + " capacity " + dataBuf.capacity());
 		dataBuf.clear();
 		int length = dataBuf.getInt();
 		byte[] message = new byte[length];
 		for (int i = 0; i < length; i++) message[i] = dataBuf.get(); 
 		dataBuf.clear();
-		logger.debug("Read on local send buffer " + new String(message));
 		return message;
 	}
 	
@@ -303,13 +298,10 @@ public class ClientRdmaConnection {
 	private byte[] readOnRecvBuffer() {
 		ByteBuffer dataBuf = clientEndpoint.getRecvBuf();
 		dataBuf.clear();
-		logger.debug("Reading the buffer with position " + dataBuf.position() + " limit " + 
-				  dataBuf.limit() + " capacity " + dataBuf.capacity());
 		int length = dataBuf.getInt();
 		byte[] message = new byte[length];
 		for (int i = 0; i < length; i++) message[i] = dataBuf.get(); 
 		dataBuf.clear();
-		logger.debug("Read on local receive buffer " + new String(message));
 		return message;
 	}
 

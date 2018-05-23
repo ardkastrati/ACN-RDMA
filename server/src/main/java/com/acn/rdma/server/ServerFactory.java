@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
-import com.ibm.disni.rdma.RdmaActiveEndpoint;
 import com.ibm.disni.rdma.RdmaActiveEndpointGroup;
 import com.ibm.disni.rdma.RdmaEndpointFactory;
 import com.ibm.disni.rdma.verbs.RdmaCmId;
@@ -23,7 +22,11 @@ public class ServerFactory implements RdmaEndpointFactory<ServerEndpoint> {
 	
 	private RdmaActiveEndpointGroup<ServerEndpoint> endpointGroup;
 	
-	
+	/**
+	 * Constructs the the server factory by specifying the generic parameter to be <tt>ServerEndpoint</tt>.
+	 * @param endpointGroup the group of endpoint
+	 * @see ClientEndpoint
+	 */
 	public ServerFactory(RdmaActiveEndpointGroup<ServerEndpoint> endpointGroup) {
 		this.endpointGroup = endpointGroup;
 	}

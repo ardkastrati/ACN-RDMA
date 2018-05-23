@@ -9,8 +9,6 @@ import org.apache.log4j.Logger;
 
 import com.ibm.disni.rdma.RdmaActiveEndpoint;
 import com.ibm.disni.rdma.RdmaActiveEndpointGroup;
-import com.ibm.disni.rdma.RdmaEndpoint;
-import com.ibm.disni.rdma.RdmaEndpointGroup;
 import com.ibm.disni.rdma.verbs.IbvMr;
 import com.ibm.disni.rdma.verbs.IbvRecvWR;
 import com.ibm.disni.rdma.verbs.IbvSendWR;
@@ -76,9 +74,9 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	
 	
 	/**
-	 * Constructs the <tt>ClientEndpoin</tt>. Creates the buffers, working request lists and the working 
+	 * Constructs the <tt>ClientEndpoint</tt>. Creates the buffers, working request lists and the working 
 	 * completion event.
-	 * @param endpointGroup
+	 * @param endpointGroup the group of endpoint
 	 * @param idPriv
 	 * @param isServerSide
 	 * @throws IOException
@@ -113,10 +111,9 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	
 	
 	/**
-	 * This method deals with specifics of the <tt>ClientEndpoint</tt>, that are necessary for the completion
-	 * of the assignment. It initializes the buffers and binds them to the memory regions of the RDMA device.
-	 * It also initializes the scatter/gather element for the send and receive operations. In the end, it
-	 * posts an receive operation.
+	 * This method deals with specifics of the <tt>ClientEndpoint</tt>. It initializes the buffers and binds 
+	 * them to the memory regions of the RDMA device. It also initializes the scatter/gather element 
+	 * for the send and receive operations. In the end, it posts an receive operation.
 	 */
 	//important: we override the init method to prepare some buffers (memory registration, post recv, etc). 
 	//This guarantees that at least one recv operation will be posted at the moment this endpoint is connected. 
@@ -152,7 +149,7 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	 * In the end it sets the send list of scatter gather elements (which in fact consists of only
 	 * one scatter gather element, since we don't need more) to the send working request.
 	 * Hence, if we want to send an operation to the server, we simply have to define other parameters
-	 * of the working request (such as working request ID, the Opcode, flags, etc).
+	 * of the working request (such as working request ID, the Opcode, flags, etc). 
 	 */
 	private void sendInit() {
 		
@@ -190,38 +187,76 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 		wcEvents.add(wc);
 	}
 	
+	/**
+	 * Get the working completion event.
+	 * @see IbvWC
+	 * @return {@link ArrayBlockingQueue}
+	 */
 	public ArrayBlockingQueue<IbvWC> getWcEvents() {
 		return wcEvents;
 	}		
-
+	
+	/**
+	 * Get the send working list.
+	 * @see IbvSendWR
+	 * @return {@link LinkedList}
+	 */
 	public LinkedList<IbvSendWR> getWrList_send() {
 		return wrList_send;
 	}
-
+	
+	/**
+	 * Get the receive working request list.
+	 * @see IbvRecvWR
+	 * @return {@link LinkedList}
+	 */
 	public LinkedList<IbvRecvWR> getWrList_recv() {
 		return wrList_recv;
 	}
-
+	
+	/**
+	 * Get the data buffer.
+	 * @return {@link ByteBuffer}
+	 */
 	public ByteBuffer getDataBuf() {
 		return dataBuf;
 	}
-
+	
+	/**
+	 * Get the send buffer.
+	 * @return {@link ByteBuffer}
+	 */
 	public ByteBuffer getSendBuf() {
 		return sendBuf;
 	}
-
+	
+	/**
+	 * Get the receive buffer. 
+	 * @return {@link ByteBuffer}
+	 */
 	public ByteBuffer getRecvBuf() {
 		return recvBuf;
 	}
-
+	/**
+	 * Get the send working request.
+	 * @return {@link IbvSendWR}
+	 */
 	public IbvSendWR getSendWR() {
 		return sendWR;
 	}
-
+	/**
+	 * Get the receiving working request.
+	 * @return {@link IbvSendWR}
+	 */
 	public IbvRecvWR getRecvWR() {
 		return recvWR;
 	}	
 	
+	/**
+	 * Changes the size of the Scatter/Gather element that bound to the local buffer. Makes possible to send
+	 * variable-long messages.
+	 * @param length
+	 */
 	public void setSendLength(int length) {
 		sgeSend.setLength(length);
 	}

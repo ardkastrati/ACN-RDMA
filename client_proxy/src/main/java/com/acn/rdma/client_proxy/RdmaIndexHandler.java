@@ -6,9 +6,9 @@ import java.io.OutputStream;
 import com.sun.net.httpserver.HttpExchange;
 
 /**
- * This class represents the interceptor. It intercepts the requests from the browser (for example Mozilla) 
- * and forwards them to the server by using a RDAM connection. The connection must be given during the construction
- * of the class.
+ * The <tt>RdmaIndexHandler</tt> class is a specialized <tt>RdmaHandler</tt> for intercepting the requests of
+ * the index from the browser (for example Mozilla) and forwards them to the server by using a 
+ * RDMA connection. The connection must be given during the construction of the class.
  * @version 1
  */
 @SuppressWarnings("restriction")
@@ -35,10 +35,9 @@ public class RdmaIndexHandler extends RdmaHandler {
 	
 	
 	/**
-	 * Here the main logic of the assignment is implemented.
 	 * <p>
-	 * The interceptor sends a 404 HTTP Response code back  to the browser unless
-	 * the browser sends a GET / HTTP request to the web server at www.rdmawebpage.com/network.png.
+	 * The interceptor sends a 404 HTTP Response code back to the browser unless
+	 * the browser sends a GET / HTTP request to the web server at www.rdmawebpage.com.
 	 * </p>
 	 * 
 	 * <p>

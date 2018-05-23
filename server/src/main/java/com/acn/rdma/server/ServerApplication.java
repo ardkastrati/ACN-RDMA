@@ -5,7 +5,6 @@ import org.apache.commons.cli.*;
 import org.apache.log4j.Logger;
 
 
-
 /**
  * This is the entry point of the server application.
  * @version 1
@@ -32,7 +31,7 @@ public class ServerApplication {
      * The server application implements the server specified in the assignment. 
      * Firstly, it checks the console arguments for the server IP and the port where the server
      * should listen. Then simply it starts the server. 
-     * Only the IP of the server is mandartory to give, if the other options are not found, it
+     * Only the IP of the server is mandatory to give, if the other options are not found, it
      * uses the default values.
      * 
      * @param args The console argument.
@@ -51,6 +50,7 @@ public class ServerApplication {
 		}
 		Server server = new Server(SERVER_IP, SERVER_PORT);
 		try {
+			logger.debug("Starting the server...");
 			server.start();
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -1,31 +1,22 @@
 package com.acn.rdma.server;
 
-import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.Base64;
 import org.apache.commons.io.IOUtils;
-
-import javax.imageio.ImageIO;
 
 import org.apache.log4j.Logger;
 
 /**
  * This class implements the server specified in the assignment. 
- * It accepts a RDMA connection to the client. It listens for the request from the proxy
- * (and replies back with 200 OK HTTP Response code, at the moment implemented in the client) 
- * and one of the following data: 
+ * It accepts a RDMA connection to the client. It listens for the requests from the proxy
+ * and responds with one of the following data: 
  *	<ul>
  *   <li>Index (html content of www.rdmawebpage.com)</li>
  *   <li>The network image (www.rdmawebpage.com/network.png)</li>
  *  </ul>
  * 
- * @see ClienRdmaConnection
+ * @see ServerRdmaConnection
  * @see RdmaWebPageHandler
  * @version 1
  */
@@ -34,11 +25,10 @@ public class Server {
 	private static final String INDEX_PATH = "static_content/index.html";
 	private static final String IMAGE_PATH = "static_content/network.png";
 	
-	private static final int RECEIVE_ID = 500;
-	
 	private static final String GET_INDEX = "Get Index";
 	private static final String GET_IMAGE = "Get Png";
-	
+
+	private static final int RECEIVE_ID = 500;
 	private static final int SEND_INDEX_ID = 1000; 
 	private static final int SEND_IMAGE_ID = 2000;
 	private static final int GET_FINAL_SIGNAL_ID = 3000;
@@ -48,11 +38,21 @@ public class Server {
 	private int port;
 	private ServerRdmaConnection connection;
 	
+	/**
+	 * Constructs the server.
+	 * @param ipAddress
+	 * @param port
+	 */
 	public Server(String ipAddress, int port) {
 		this.ipAddress = ipAddress;
 		this.port = port;
 	}
 	
+	/**
+	 * Starts the server. The server firsts wait for a connection request from the client.
+	 * After the connection, it posts a receive working request and waits for new requests continuously.
+	 * @throws Exception
+	 */
 	public void start() throws Exception {
 		acceptRdmaConnection();
 		while(true) {
@@ -61,22 +61,19 @@ public class Server {
 	}
 
 	private void acceptRdmaConnection() throws Exception {
-		logger.debug("Creating an RDMA connection.");
+		logger.debug("Creating an RDMA connection...");
 		connection = new ServerRdmaConnection();
 		logger.debug("RDMA Connection established.");
-		logger.debug("Accepting connection from client.");
+		
+		logger.debug("Accepting connection from client...");
 		connection.rdmaAccept(ipAddress, port);
 		logger.debug("Connected to client.");
 	}
 	
 	private void acceptNextRequest() throws IOException, InterruptedException {
-		
 		String message = new String(connection.rdmaReceive(RECEIVE_ID));
-		logger.debug("Got message " + new String(message));
-		logger.debug("Checking the byte array, message: " + message + "should be" + GET_INDEX);
-		logger.debug("Message length is " + message.length() + " Get index length is " + GET_INDEX.length());
 		if(message.equals(GET_INDEX)) {
-				logger.debug("Started processing " + new String(GET_INDEX));
+				logger.debug("Started processing Get Index.");
 				// dump 'index.html' to a String
 				byte[] htmlFile = null;
 				try {
@@ -86,15 +83,15 @@ public class Server {
 					e.printStackTrace();
 					System.exit(-1);
 				}
-				logger.debug("Preparing rdma access.");
+				logger.debug("Preparing rdma access...");
 				connection.prepareRdmaAccess(htmlFile, SEND_INDEX_ID);
 				logger.debug("Rdma access done.");
 				connection.rdmaReceive(GET_FINAL_SIGNAL_ID);
-				logger.debug("Got the final signal message");
+				logger.debug("Got the final signal message.");
 				
 		} else if(message.equals(GET_IMAGE)) {
 				// dump 'network.png' to a String
-				logger.debug("Started processing " + new String(GET_IMAGE));
+				logger.debug("Started processing Get Image.");
 				byte[] image = null;
 				try {
 					image = imageToBytes();
@@ -103,11 +100,11 @@ public class Server {
 					e.printStackTrace();
 					System.exit(-1);
 				}
-				logger.debug("Preparing rdma access.");
+				logger.debug("Preparing rdma access...");
 				connection.prepareRdmaAccess(image, SEND_IMAGE_ID);
 				logger.debug("Rdma access done.");
 				connection.rdmaReceive(GET_FINAL_SIGNAL_ID);
-				logger.debug("Got the final signal message");
+				logger.debug("Got the final signal message.");
 	
 		} else {	
 				logger.debug("Unknow request.");
@@ -118,7 +115,7 @@ public class Server {
 	
 
 	/**
-	 * Converts network.png to a byte array
+	 * Converts an network.png to a byte array.
 	 * 
 	 * @return byte array with the content of network.png
 	 * @throws IOException 
@@ -132,7 +129,7 @@ public class Server {
 	}
  	
 	/**
-	 * Converts index.html to a byte array
+	 * Converts index.html to a byte array.
 	 * 
 	 * @return byte array with the content of index.html
 	 * @throws Exception

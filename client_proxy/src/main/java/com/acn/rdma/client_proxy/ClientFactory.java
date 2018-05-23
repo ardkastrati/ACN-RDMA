@@ -6,14 +6,12 @@ import org.apache.log4j.Logger;
 
 import com.ibm.disni.rdma.RdmaActiveEndpointGroup;
 import com.ibm.disni.rdma.RdmaEndpointFactory;
-import com.ibm.disni.rdma.RdmaEndpointGroup;
 import com.ibm.disni.rdma.verbs.RdmaCmId;
 
 
 /**
  * The concrete factory of the client endpoint. This factory creates the concrete client endpoint,
  * that was implemented in the class <tt>ClientEndpoint</tt>.
- * 
  * @see ClientEndpoint
  */
 
@@ -23,6 +21,11 @@ public class ClientFactory implements RdmaEndpointFactory<ClientEndpoint> {
 	
 	private RdmaActiveEndpointGroup<ClientEndpoint> endpointGroup;
 	
+	/**
+	 * Constructs the the client factory by specifying the generic parameter to be <tt>ClientEndpoint</tt>.
+	 * @param endpointGroup the group of endpoint
+	 * @see ClientEndpoint
+	 */
 	public ClientFactory(RdmaActiveEndpointGroup<ClientEndpoint> endpointGroup) {
 		this.endpointGroup = endpointGroup;
 	}
@@ -32,9 +35,9 @@ public class ClientFactory implements RdmaEndpointFactory<ClientEndpoint> {
 	 * @see ClientEndpoint
 	 */
 	public ClientEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
-		logger.debug("Trying to create the custom endpoint (ClientEndpoint)");
+		logger.debug("Trying to create the custom endpoint (ClientEndpoint)...");
 		ClientEndpoint endpoint = new ClientEndpoint(endpointGroup, idPriv, serverSide);
-		logger.debug("Successfully created the custom endpoint (Client Endpoint)");
+		logger.debug("Successfully created the custom endpoint (Client Endpoint).");
 		return endpoint;
 
 	}	
