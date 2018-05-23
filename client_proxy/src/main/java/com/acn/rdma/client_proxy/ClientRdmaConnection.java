@@ -94,12 +94,12 @@ public class ClientRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void rdmaSend(String message, int id) throws IOException, InterruptedException {
+	public void rdmaSend(byte[] message, int id) throws IOException, InterruptedException {
 		// send a message to the server
 		createWRSendOperation();
 		logger.debug("Create a send operation.");
 		writeOnSendBuffer(message);
-		logger.debug("Write on the send buffer the message " + message);
+		logger.debug("Write on the send buffer the message " + new String(message));
 		postSendOperation(id);
 		logger.debug("Posted the operation.");
 		waitForTransmission();
@@ -111,15 +111,15 @@ public class ClientRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public String rdmaReceive(int id) throws IOException, InterruptedException {
+	public byte[] rdmaReceive(int id) throws IOException, InterruptedException {
 		createRecvOperation(id);
 		logger.debug("Created receive operation.");
 		postReceiveOperation();
 		logger.debug("Posted the operation.");
 		waitForTransmission();
 		logger.debug("Operation transmitted successfully.");
-		String message = readOnRecvBuffer();
-		logger.debug("Read on the receive buffer " + message);
+		byte[] message = readOnRecvBuffer();
+		logger.debug("Read on the receive buffer " + new String(message));
 		return message;
 	}
 	
@@ -146,7 +146,7 @@ public class ClientRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public String rdmaRead(int id) throws IOException, InterruptedException {
+	public byte[] rdmaRead(int id) throws IOException, InterruptedException {
 		
 		createRdmaReadOperation();
 		logger.debug("Created a rdma read operation.");
@@ -156,8 +156,8 @@ public class ClientRdmaConnection {
 		waitForTransmission();
 		logger.debug("Confirmed the transmission.");
 		//access the data in our own buffer
-		String message = readOnSendBuffer();
-		logger.debug("RDMA read " + message);
+		byte[] message = readOnSendBuffer();
+		logger.debug("RDMA read " + new String(message));
 		
 		return message;
 	}
@@ -265,22 +265,31 @@ public class ClientRdmaConnection {
 	 * Writes on the send buffer.
 	 * @param message
 	 */
-	private void writeOnSendBuffer(String message) {
+	private void writeOnSendBuffer(byte[] message) {
 		ByteBuffer sendBuf = this.clientEndpoint.getSendBuf();
 		sendBuf.clear();
-		sendBuf.asCharBuffer().put(message);
+		sendBuf.putInt(message.length);
+		sendBuf.put(message);
 		sendBuf.clear();
+		logger.debug("Send the buffer with position " + sendBuf.position() + " limit " + 
+				  sendBuf.limit() + " capacity " + sendBuf.capacity());
+		this.clientEndpoint.setSendLength(Integer.SIZE/8 + message.length);
 	}
 	
 	/**
 	 * Reads on the data buffer.
 	 * @return
 	 */
-	private String readOnSendBuffer() {
+	private byte[] readOnSendBuffer() {
 		ByteBuffer dataBuf = clientEndpoint.getSendBuf();
+		logger.debug("Reading the buffer with position " + dataBuf.position() + " limit " + 
+				  dataBuf.limit() + " capacity " + dataBuf.capacity());
 		dataBuf.clear();
-		String message = dataBuf.asCharBuffer().toString();
-		logger.debug("Read on local send buffer " + message);
+		int length = dataBuf.getInt();
+		byte[] message = new byte[length];
+		for (int i = 0; i < length; i++) message[i] = dataBuf.get(); 
+		dataBuf.clear();
+		logger.debug("Read on local send buffer " + new String(message));
 		return message;
 	}
 	
@@ -288,11 +297,16 @@ public class ClientRdmaConnection {
 	 * Reads on the data buffer.
 	 * @return
 	 */
-	private String readOnRecvBuffer() {
+	private byte[] readOnRecvBuffer() {
 		ByteBuffer dataBuf = clientEndpoint.getRecvBuf();
 		dataBuf.clear();
-		String message = dataBuf.asCharBuffer().toString();
-		logger.debug("Read on receive buffer " + message);		
+		logger.debug("Reading the buffer with position " + dataBuf.position() + " limit " + 
+				  dataBuf.limit() + " capacity " + dataBuf.capacity());
+		int length = dataBuf.getInt();
+		byte[] message = new byte[length];
+		for (int i = 0; i < length; i++) message[i] = dataBuf.get(); 
+		dataBuf.clear();
+		logger.debug("Read on local receive buffer " + new String(message));
 		return message;
 	}
 

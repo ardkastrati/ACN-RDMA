@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Base64;
 import org.apache.commons.io.IOUtils;
 
@@ -75,14 +76,16 @@ public class Server {
 	
 	private void acceptNextRequest() throws IOException, InterruptedException {
 		
-		String message = connection.rdmaReceive(RECEIVE_ID);
-		logger.debug("Got message " + message);
-		if(message.substring(0, 9).equals(GET_INDEX)) {
-				logger.debug("Started processing " + GET_INDEX);
+		String message = new String(connection.rdmaReceive(RECEIVE_ID));
+		logger.debug("Got message " + new String(message));
+		logger.debug("Checking the byte array, message: " + message + "should be" + GET_INDEX);
+		logger.debug("Message length is " + message.length() + " Get index length is " + GET_INDEX.length());
+		if(message.equals(GET_INDEX)) {
+				logger.debug("Started processing " + new String(GET_INDEX));
 				// dump 'index.html' to a String
-				String htmlFile = null;
+				byte[] htmlFile = null;
 				try {
-					htmlFile = fileToString();
+					htmlFile = fileToBytes();
 				} catch (Exception e) {
 					logger.debug("Could not open the html file.");
 					e.printStackTrace();
@@ -96,18 +99,18 @@ public class Server {
 				connection.rdmaReceive(GET_FINAL_SIGNAL_ID);
 				logger.debug("Got the final signal message");
 				
-		} else if(message.substring(0, 7).equals(GET_IMAGE)) {
+		} else if(message.equals(GET_IMAGE)) {
 				// dump 'network.png' to a String
-				logger.debug("Started processing " + GET_IMAGE);
-				String image = null;
+				logger.debug("Started processing " + new String(GET_IMAGE));
+				byte[] image = null;
 				try {
-					image = imageToString();
+					image = imageToBytes();
 				} catch (Exception e) {
 					logger.debug("Could not open the image file.");
 					e.printStackTrace();
 					System.exit(-1);
 				}
-				logger.debug("Loaded the image with size " + image.length() );
+				logger.debug("Loaded the image with size " + image.length);
 				connection.prepareRdmaAccess(image);
 				logger.debug("Dumping the image file in the data buffer.");
 				connection.sendRdmaInfo(SEND_RDMA_INFO_ID);
@@ -130,12 +133,11 @@ public class Server {
 	 * @throws IOException 
 	 * @throws Exception
 	 */
-	private String imageToString() throws IOException {
+	private byte[] imageToBytes() throws IOException {
 		 InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(IMAGE_PATH);
 	     byte[] imageBytes = IOUtils.toByteArray(is);
-	     byte[] encoded = Base64.getEncoder().encode(imageBytes);
-	     String imageString = new String(encoded);
-	     return imageString;
+	     byte[] encodedImage = Base64.getEncoder().encode(imageBytes);
+	     return encodedImage;
 	}
  	
 	/**
@@ -144,9 +146,11 @@ public class Server {
 	 * @return string with the content of index.html
 	 * @throws Exception
 	 */
-	private String fileToString() throws Exception {
+	private byte[] fileToBytes() throws Exception {
 		
 		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(INDEX_PATH);
+		return IOUtils.toByteArray(is);
+		/*
 		BufferedReader br = new BufferedReader(new InputStreamReader(is));
 		try {
 			StringBuilder sb = new StringBuilder();
@@ -163,7 +167,7 @@ public class Server {
 			
 		} finally {
 			br.close();
-		}
+		}*/
 	}
  	
 }

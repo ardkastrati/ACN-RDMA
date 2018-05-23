@@ -220,5 +220,10 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 
 	public IbvRecvWR getRecvWR() {
 		return recvWR;
-	}		
+	}	
+	
+	public void setSendLength(int length) {
+		sgeSend.setLength(length);
+	}
+	
 }

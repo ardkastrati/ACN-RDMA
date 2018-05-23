@@ -27,11 +27,8 @@ public class RdmaImageHandler implements HttpHandler {
 	private static final Logger logger = Logger.getLogger(RdmaImageHandler.class);
 	
 	private static final String RDMA_WEBPAGE_URL_PREFIX = "www.rdmawebpage.com";
-	private static final String GET_INDEX = "Get Index";
 	private static final String GET_IMAGE = "Get Png";
 	private static final String FINAL_SIGNAL_MESSAGE = "Everything went fine";
-	private static final int GET_INDEX_ID = 1000; 
-	private static final int RDMA_READ_INDEX_ID = 1001;
 	
 	private static final int GET_IMAGE_ID = 2000;
 	private static final int RDMA_READ_IMAGE_ID = 2001;
@@ -49,18 +46,18 @@ public class RdmaImageHandler implements HttpHandler {
 	}
 	
 	
-	private String requestImage() throws IOException, InterruptedException {
-		rdmaConnection.rdmaSend(GET_IMAGE, GET_IMAGE_ID);
+	private byte[] requestImage() throws IOException, InterruptedException {
+		rdmaConnection.rdmaSend(GET_IMAGE.getBytes(), GET_IMAGE_ID);
 		logger.debug("Requested the image with the request " + GET_IMAGE + " and id " + GET_IMAGE_ID);
 		
 		rdmaConnection.receiveRdmaInfo(GET_IMAGE_ID);
 		logger.debug("Got from the server the signal for rdma read with the rdma info.");
 		
 		//read the image!
-		String image = rdmaConnection.rdmaRead(RDMA_READ_IMAGE_ID);
-		logger.debug("Got image: " +image);
-		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE, FINAL_SIGNAL_ID);
-		logger.debug("Sent the final signal message " + FINAL_SIGNAL_MESSAGE + " with id " + FINAL_SIGNAL_ID);
+		byte[] image = rdmaConnection.rdmaRead(RDMA_READ_IMAGE_ID);
+		logger.debug("Got image: " + new String(image));
+		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE.getBytes(), FINAL_SIGNAL_ID);
+		logger.debug("Sent the final signal message " + new String(FINAL_SIGNAL_MESSAGE) + " with id " + FINAL_SIGNAL_ID);
 		return image;
 	}
 	
@@ -89,13 +86,14 @@ public class RdmaImageHandler implements HttpHandler {
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
-				String image = requestImage();
-				byte[] decoded = Base64.getMimeDecoder().decode(image.getBytes());
-				t.sendResponseHeaders(200, decoded.length);
+				byte[] image = requestImage();
+				byte[] decodedImage = Base64.getMimeDecoder().decode(image);
+				//byte[] decoded = Base64.getMimeDecoder().decode(image.getBytes());
+				t.sendResponseHeaders(200, decodedImage.length);
 				t.getResponseHeaders().set("Content-Type", "image/png");
 				logger.debug("Sending 200 for the image back to the browser...");
 				OutputStream os = t.getResponseBody();
-        		os.write(decoded);
+        		os.write(decodedImage);
         		os.close();
         		logger.debug("Sent the response back.");
 			} catch (Exception e) {

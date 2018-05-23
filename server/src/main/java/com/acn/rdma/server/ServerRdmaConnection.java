@@ -98,14 +98,14 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public String rdmaReceive(int id) throws IOException, InterruptedException {
+	public byte[] rdmaReceive(int id) throws IOException, InterruptedException {
 		createRecvOperation(id);
 		logger.debug("Created receive operation.");
 		postReceiveOperation();
 		logger.debug("Posted the operation.");
 		waitForTransmission();
 		logger.debug("Operation transmitted successfully.");
-		String message = readOnRecvBuffer();
+		byte[] message = readOnRecvBuffer();
 		logger.debug("Read on the receive buffer " + message);
 		return message;
 	}
@@ -117,7 +117,7 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void rdmaSend(String message, int id) throws IOException, InterruptedException {
+	public void rdmaSend(byte[] message, int id) throws IOException, InterruptedException {
 		writeOnSendBuffer(message);
 		logger.debug("Wrote on the local buffer " + message);
 		createWRSendOperation();
@@ -167,7 +167,7 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void prepareRdmaAccess(String message) throws IOException, InterruptedException {
+	public void prepareRdmaAccess(byte[] message) throws IOException, InterruptedException {
 		writeOnBuffer(message);
 	}
 	
@@ -236,32 +236,44 @@ public class ServerRdmaConnection {
 	 * 
 	 * @param message
 	 */
-	private void writeOnBuffer(String message) {
+	private void writeOnBuffer(byte[] message) {
 		ByteBuffer buf = this.endpoint.getDataBuf();
 		buf.clear();
-		buf.asCharBuffer().put(message);
+		buf.putInt(message.length);
+		buf.put(message);
 		buf.clear();
+		logger.debug("Data buffer with position " + buf.position() + " limit " + 
+				  buf.limit() + " capacity " + buf.capacity());
 	}
 	
 	/**
 	 * Writes on the send buffer.
 	 * @param message
 	 */
-	private void writeOnSendBuffer(String message) {
+	private void writeOnSendBuffer(byte[] message) {
 		ByteBuffer sendBuf = this.endpoint.getSendBuf();
-		sendBuf.asCharBuffer().put(message);
 		sendBuf.clear();
+		sendBuf.putInt(message.length);
+		sendBuf.put(message);
+		sendBuf.clear();
+		logger.debug("Sending the buffer with position " + sendBuf.position() + " limit " + 
+				  sendBuf.limit() + " capacity " + sendBuf.capacity());
+		this.endpoint.setSendLength(Integer.SIZE/8 + message.length);
 	}
 	
 	/**
 	 * Reads on the data buffer.
 	 * @return
 	 */
-	private String readOnRecvBuffer() {
+	private byte[] readOnRecvBuffer() {
 		ByteBuffer dataBuf = endpoint.getRecvBuf();
-		dataBuf.clear();
-		String message = dataBuf.asCharBuffer().toString();
-		logger.debug("Read on receive buffer " + message);		
+		logger.debug("Reading the buffer with position " + dataBuf.position() + " limit " + 
+				  dataBuf.limit() + " capacity " + dataBuf.capacity());
+		int length = dataBuf.getInt();
+		byte[] message = new byte[length];
+		for (int i = 0; i < length; i++) message[i] = dataBuf.get(); 
+		dataBuf.clear();	
+		logger.debug("Read on local buffer " + new String(message));
 		return message;
 	}
 

@@ -217,12 +217,14 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 	public IbvRecvWR getRecvWR() {
 		return recvWR;
 	}
-
-	/**
-	 * @return the dataMr
-	 */
+	
+	public void setSendLength(int length) {
+		sgeSend.setLength(length);
+	}
+	
 	public IbvMr getDataMr() {
 		return dataMr;
 	}
+	
 
 }

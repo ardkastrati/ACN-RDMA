@@ -28,13 +28,10 @@ public class RdmaIndexHandler implements HttpHandler {
 	
 	private static final String RDMA_WEBPAGE_URL_PREFIX = "www.rdmawebpage.com";	
 	private static final String GET_INDEX = "Get Index";
-	private static final String GET_IMAGE = "Get Png";
 	private static final String FINAL_SIGNAL_MESSAGE = "Everything went fine";
+	
 	private static final int GET_INDEX_ID = 1000; 
 	private static final int RDMA_READ_INDEX_ID = 1001;
-	
-	private static final int GET_IMAGE_ID = 2000;
-	private static final int RDMA_READ_IMAGE_ID = 2001;
 	
 	private static final int FINAL_SIGNAL_ID = 3000;
 	
@@ -50,15 +47,15 @@ public class RdmaIndexHandler implements HttpHandler {
 	
 	
 	
-	private String requestIndex() throws IOException, InterruptedException {
-		rdmaConnection.rdmaSend(GET_INDEX, GET_INDEX_ID);
+	private byte[] requestIndex() throws IOException, InterruptedException {
+		rdmaConnection.rdmaSend(GET_INDEX.getBytes(), GET_INDEX_ID);
 		logger.debug("Sent a " + GET_INDEX + " with id " + GET_INDEX_ID + " to the server.");
 		rdmaConnection.receiveRdmaInfo(GET_INDEX_ID);
 		logger.debug("Got from the server the signal for rdma read with the rdma info.");
 		
-		String index = rdmaConnection.rdmaRead(RDMA_READ_INDEX_ID);
+		byte[] index = rdmaConnection.rdmaRead(RDMA_READ_INDEX_ID);
 		logger.debug("Got index: " + index);
-		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE, FINAL_SIGNAL_ID);
+		rdmaConnection.rdmaSend(FINAL_SIGNAL_MESSAGE.getBytes(), FINAL_SIGNAL_ID);
 		logger.debug("Sent the final signal message " + FINAL_SIGNAL_MESSAGE + " with id " + FINAL_SIGNAL_ID);
 		return index;
 	}
@@ -90,7 +87,7 @@ public class RdmaIndexHandler implements HttpHandler {
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
         	logger.debug("Found the request");
         	
-        	String index = null;
+        	byte[] index = null;
         	try {
 				index = requestIndex();
 			} catch (Exception e) {
@@ -100,9 +97,9 @@ public class RdmaIndexHandler implements HttpHandler {
         	
         	if (index != null) {
         		logger.debug("Sending 200 for the html file back to the browser...");
-        		t.sendResponseHeaders(200, index.length());
+        		t.sendResponseHeaders(200, index.length);
         		OutputStream os = t.getResponseBody();
-        		os.write(index.getBytes());
+        		os.write(index);
         		os.close();
         		logger.debug("Sent the response back.");
         	}
