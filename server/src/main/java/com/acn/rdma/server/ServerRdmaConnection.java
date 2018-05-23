@@ -103,8 +103,8 @@ public class ServerRdmaConnection {
 		logger.debug("Created receive operation.");
 		postReceiveOperation();
 		logger.debug("Posted the operation.");
-		waitForTransmission();
-		logger.debug("Operation transmitted successfully.");
+		int length = waitForTransmission();
+		logger.debug("Operation transmitted successfully with wc length " + length);
 		byte[] message = readOnRecvBuffer();
 		logger.debug("Read on the receive buffer " + message);
 		return message;
@@ -125,13 +125,24 @@ public class ServerRdmaConnection {
 		postSendOperation(id);
 		logger.debug("Sent the operation.");
 		//wait for the transmission of the data
-		waitForTransmission();
-		logger.debug("Transmitted the rdma operation successfully.");
+		int length = waitForTransmission();
+		logger.debug("Transmitted the rdma operation successfully with wc length " + length);
 		//wait for confirmation that client has read the data.
 		waitForTransmission();
 		logger.debug("Got the final message of success from client.");
 	}
 	
+	/**
+	 * Prepare the data in the data buffer, for rdma Access.
+	 * @param message
+	 * @param id
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	public void prepareRdmaAccess(byte[] message, int id) throws IOException, InterruptedException {
+		writeOnBuffer(message);
+		sendRdmaInfo(message.length, id);
+	}
 
 	/**
 	 * Sends the information of the local buffer.
@@ -140,12 +151,12 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void sendRdmaInfo(int id) throws IOException, InterruptedException {
+	private void sendRdmaInfo(int lengthOfRdmaAccess, int id) throws IOException, InterruptedException {
 		// prepare a message with the RDMA information of the data buffer
 		// it we allow the client to read using a one-sided RDMA operation			
 		ByteBuffer sendBuf = endpoint.getSendBuf();
 		sendBuf.putLong(endpoint.getDataMr().getAddr());
-		sendBuf.putInt(endpoint.getDataMr().getLength());
+		sendBuf.putInt(lengthOfRdmaAccess);
 		sendBuf.putInt(endpoint.getDataMr().getLkey());
 		sendBuf.clear();	
 		logger.debug("Stored rdma information, addr " + endpoint.getDataMr().getAddr() + ", length " 
@@ -156,19 +167,8 @@ public class ServerRdmaConnection {
 		postSendOperation(id);
 		logger.debug("Sent the operation.");
 		//wait for the transmission of the data
-		waitForTransmission();
-		logger.debug("Transmitted the rdma operation successfully.");		
-	}
-	
-	/**
-	 * Prepare the data in the data buffer, for rdma Access.
-	 * @param message
-	 * @param id
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	public void prepareRdmaAccess(byte[] message) throws IOException, InterruptedException {
-		writeOnBuffer(message);
+		int length = waitForTransmission();
+		logger.debug("Transmitted the rdma operation successfully with wc length " + length);		
 	}
 	
 	
@@ -179,10 +179,11 @@ public class ServerRdmaConnection {
 	 */
 	//TODO: Maybe we can do better and not simply blindly wait for next event, but instead check what the event actually is.
 	// Nonetheless, it works this way as well (in the Github examples it is the same).
-	private void waitForTransmission() throws InterruptedException {
+	private int waitForTransmission() throws InterruptedException {
 		// take the event confirming that the message was sent
 		IbvWC wc = endpoint.getWcEvents().take();
 		logger.debug("Message transmitted, wr_id " + wc.getWr_id());
+		return wc.getByte_len();
 	}
 	
 	

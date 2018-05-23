@@ -34,20 +34,15 @@ public class Server {
 	private static final String INDEX_PATH = "static_content/index.html";
 	private static final String IMAGE_PATH = "static_content/network.png";
 	
-	
 	private static final int RECEIVE_ID = 500;
 	
 	private static final String GET_INDEX = "Get Index";
 	private static final String GET_IMAGE = "Get Png";
 	
-	private static final int GET_INDEX_ID = 1000; 
-	private static final int GET_IMAGE_ID = 2000;
-	
-	private static final int SEND_INDEX_ID = 1002; 
-	private static final int SEND_IMAGE_ID = 2002;
-
-	private static final int SEND_RDMA_INFO_ID = 2500;
+	private static final int SEND_INDEX_ID = 1000; 
+	private static final int SEND_IMAGE_ID = 2000;
 	private static final int GET_FINAL_SIGNAL_ID = 3000;
+	
 	
 	private String ipAddress;
 	private int port;
@@ -91,11 +86,9 @@ public class Server {
 					e.printStackTrace();
 					System.exit(-1);
 				}
-				
-				connection.prepareRdmaAccess(htmlFile);
-				logger.debug("Dumping the html file in the data buffer.");
-				connection.sendRdmaInfo(SEND_RDMA_INFO_ID);
-				logger.debug("Sent the rdma info.");
+				logger.debug("Preparing rdma access.");
+				connection.prepareRdmaAccess(htmlFile, SEND_INDEX_ID);
+				logger.debug("Rdma access done.");
 				connection.rdmaReceive(GET_FINAL_SIGNAL_ID);
 				logger.debug("Got the final signal message");
 				
@@ -110,11 +103,9 @@ public class Server {
 					e.printStackTrace();
 					System.exit(-1);
 				}
-				logger.debug("Loaded the image with size " + image.length);
-				connection.prepareRdmaAccess(image);
-				logger.debug("Dumping the image file in the data buffer.");
-				connection.sendRdmaInfo(SEND_RDMA_INFO_ID);
-				logger.debug("Sent the rdma info.");
+				logger.debug("Preparing rdma access.");
+				connection.prepareRdmaAccess(image, SEND_IMAGE_ID);
+				logger.debug("Rdma access done.");
 				connection.rdmaReceive(GET_FINAL_SIGNAL_ID);
 				logger.debug("Got the final signal message");
 	
