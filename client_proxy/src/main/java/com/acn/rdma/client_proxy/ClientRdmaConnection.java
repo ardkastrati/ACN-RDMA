@@ -211,8 +211,9 @@ public class ClientRdmaConnection {
 	 *  </ul>
 	 * </p>
 	 * Then it creates a RDMA operation in the send working queue.
+	 * @throws RdmaConnectionException 
 	 */
-	private void createRdmaReadOperation() {
+	private void createRdmaReadOperation() throws RdmaConnectionException {
 		//read the message that the server sent with information about the 'RDMA read' that we should do
 		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
 		recvBuf.clear();
@@ -236,7 +237,7 @@ public class ClientRdmaConnection {
 			logger.debug("Stored the values in the RDMA read operation.");
 		}
 		else {
-			// TODO: send an exception when RdmaConnectionException is created
+			throw new RdmaConnectionException("status code not 200: " + status_code);
 		}
 	}
 	
