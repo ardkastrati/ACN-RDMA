@@ -57,7 +57,7 @@ public abstract class RdmaHandler implements HttpHandler {
 		this.serverPort = serverPort;
 		
 		try {
-			verifyConnection();
+			connectToServer();
 		} catch (RdmaConnectionException e) {
 			logger.debug("Failed to connect to the server");
 		}
@@ -86,43 +86,20 @@ public abstract class RdmaHandler implements HttpHandler {
 	}
 	
 	
-	protected void verifyConnection () throws RdmaConnectionException {
-		if (isConnectionInitialized()) {
-			logger.debug("Verifier: The connection is initialized");
-			if (! rdmaConnection.isConnected()) {
-				logger.debug("Verifier: The connection to the server is down");
-				connectToServer();
-			}
-			else {
-				logger.debug("Verifier: The connection to the server is working perfectly");
-			}
-		}
-		else {
-			logger.debug("Verifier: The connection is not initialized");
-			this.rdmaConnection = new ClientRdmaConnection();
-			connectToServer();
-		}
-	}
-	
-	protected boolean isConnectionInitialized() {
-		return rdmaConnection != null;
-	}
-	
-	
 	/**
 	 * Responds with a 404 error.
 	 * @param t
 	 * @throws IOException
 	 */
 	protected void send404Error(HttpExchange t) throws IOException {
-		//logger.debug("Sending 404 back back to the browser...");
+		logger.debug("Sending 404 back back to the browser...");
 		byte[] errorBody = getErrorBody(404);
 		t.sendResponseHeaders(404, errorBody.length);
 		OutputStream os = t.getResponseBody();
 		os.write(errorBody);
 		os.close();
 		t.getResponseBody().close();
-		//logger.debug("Sent the response back.");
+		logger.debug("Sent the response back.");
 	}
 	
 	/**
@@ -139,14 +116,6 @@ public abstract class RdmaHandler implements HttpHandler {
 		os.close();
 		t.getResponseBody().close();
 		logger.debug("Sent the response back.");
-		
-		// if we are sending a 504 error it means we got disconnected
-		// In disni's RdmaEndpoint.java the state of the endpoint does not
-		// go to CONN_STATE_INITIALIZED again so it doesn't let us try to
-		// reconnect
-		// The only alternative is to close the endpoint and create a new one
-		rdmaConnection.closeEndpoint();
-		rdmaConnection = null;
 	}
 	
     protected byte[] getErrorBody(int errorCode) {

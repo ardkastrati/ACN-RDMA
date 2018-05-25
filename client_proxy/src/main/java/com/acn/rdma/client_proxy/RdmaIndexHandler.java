@@ -53,18 +53,15 @@ public class RdmaIndexHandler extends RdmaHandler {
 	 * </p>
 	 */
     public void handle(HttpExchange t) throws IOException {
-    	
+    	logger.debug("Starting to handle the request " + t.getRequestURI());
+
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
-    		logger.debug("Starting to handle the request " + t.getRequestURI());
         	logger.debug("Found the request");
         	
         	try {
         		byte[] index = null;
-        		System.out.println("before synchronized");
-        		verifyConnection();
         		synchronized (rdmaConnection) {
-        			System.out.println("in synchronized");
         			index = requestIndex();
  				}
 	        	logger.debug("Sending 200 for the html file back to the browser...");

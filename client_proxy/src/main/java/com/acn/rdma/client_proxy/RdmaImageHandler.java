@@ -50,14 +50,12 @@ public class RdmaImageHandler extends RdmaHandler {
 	 * If the communication between the proxy and the server fails, the proxy replies with HTTP 504 (Gateway Time-out).
 	 * </p>
 	 */
-    //@Override
     public void handle(HttpExchange t) throws IOException {
     	logger.debug("Starting to handle the request " + t.getRequestURI());
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
     			byte[] image = null;
-    			verifyConnection();
     			synchronized (rdmaConnection) {
     				image = requestImage();
 				}

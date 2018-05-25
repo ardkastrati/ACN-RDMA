@@ -347,7 +347,7 @@ public class ClientRdmaConnection {
 			logger.debug("Problems closing the endpoint");
 			e.printStackTrace();
 		}
-		logger.debug("Endpoint closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+		logger.debug("Endpoint closed !");
 	}
 	
 }
