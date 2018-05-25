@@ -53,10 +53,12 @@ public class ClientApplication {
 		try {
 			logger.debug("Starting the proxy...");
 			proxy.start();
+			logger.debug("Proxy started.");
 		} catch (Exception e) {
 			logger.debug("An error occured while starting the proxy. " + e.getMessage());
 			System.exit(1);
 		}
+		
 	}
 	
 	

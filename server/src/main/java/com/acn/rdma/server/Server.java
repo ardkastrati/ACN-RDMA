@@ -53,14 +53,14 @@ public class Server {
 	 * After the connection, it posts a receive working request and waits for new requests continuously.
 	 * @throws Exception
 	 */
-	public void start() throws Exception {
+	public void start() throws RdmaConnectionException {
 		acceptRdmaConnection();
 		while(true) {
 			acceptNextRequest();
 		}
 	}
 
-	private void acceptRdmaConnection() throws Exception {
+	private void acceptRdmaConnection() throws RdmaConnectionException {
 		logger.debug("Creating an RDMA connection...");
 		connection = new ServerRdmaConnection();
 		logger.debug("RDMA Connection established.");
@@ -70,7 +70,7 @@ public class Server {
 		logger.debug("Connected to client.");
 	}
 	
-	private void acceptNextRequest() throws IOException, InterruptedException {
+	private void acceptNextRequest() throws RdmaConnectionException {
 		String message = new String(connection.rdmaReceive(RECEIVE_ID));
 		if(message.equals(GET_INDEX)) {
 				logger.debug("Started processing Get Index.");
@@ -80,7 +80,6 @@ public class Server {
 					htmlFile = fileToBytes();
 				} catch (Exception e) {
 					logger.debug("Could not open the html file.");
-					e.printStackTrace();
 					System.exit(-1);
 				}
 				logger.debug("Preparing rdma access...");
@@ -132,9 +131,9 @@ public class Server {
 	 * Converts index.html to a byte array.
 	 * 
 	 * @return byte array with the content of index.html
-	 * @throws Exception
+	 * @throws IOException
 	 */
-	private byte[] fileToBytes() throws Exception {
+	private byte[] fileToBytes() throws IOException {
 		
 		InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(INDEX_PATH);
 		return IOUtils.toByteArray(is);

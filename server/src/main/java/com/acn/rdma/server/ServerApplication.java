@@ -52,7 +52,7 @@ public class ServerApplication {
 		try {
 			logger.debug("Starting the server...");
 			server.start();
-		} catch (Exception e) {
+		} catch (RdmaConnectionException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}	

@@ -61,17 +61,21 @@ public class ServerRdmaConnection {
 	 */
 	// This is created by looking at the examples in the Github.
 	
-	public ServerRdmaConnection() throws IOException {
-		logger.debug("Creating the endpoint group...");
-		//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-		RdmaActiveEndpointGroup<ServerEndpoint> serverEndpointGroup =new RdmaActiveEndpointGroup<ServerEndpoint>(1000, false, 128, 4, 128);
-		logger.debug("Creating the factory...");
-		ServerFactory serverFactory = new ServerFactory(serverEndpointGroup);
-		logger.debug("Initializing the group with the factory...");
-		serverEndpointGroup.init(serverFactory);
-		logger.debug("Creating the endpoint.");
-		this.serverEndpoint = serverEndpointGroup.createServerEndpoint();
-		logger.debug("Endpoint successfully created.");
+	public ServerRdmaConnection() throws RdmaConnectionException {
+		try {
+			logger.debug("Creating the endpoint group...");
+			//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
+			RdmaActiveEndpointGroup<ServerEndpoint> serverEndpointGroup =new RdmaActiveEndpointGroup<ServerEndpoint>(1000, false, 128, 4, 128);
+			logger.debug("Creating the factory...");
+			ServerFactory serverFactory = new ServerFactory(serverEndpointGroup);
+			logger.debug("Initializing the group with the factory...");
+			serverEndpointGroup.init(serverFactory);
+			logger.debug("Creating the endpoint.");
+			this.serverEndpoint = serverEndpointGroup.createServerEndpoint();
+			logger.debug("Endpoint successfully created.");
+		} catch (IOException e) {
+			throw new RdmaConnectionException(e.getMessage());
+		}
 	}
 	
 	/**
@@ -80,15 +84,19 @@ public class ServerRdmaConnection {
 	 * @param port
 	 * @throws Exception
 	 */
-	public void rdmaAccept(String ipAddress, int port) throws Exception {
-		// we can call bind on a server endpoint, just like we do with sockets
-		URI uri = URI.create("rdma://" + ipAddress + ":" + port);
-		serverEndpoint.bind(uri);
-		logger.debug("Server bound to address " + uri.toString());
+	public void rdmaAccept(String ipAddress, int port) throws RdmaConnectionException {
+		try {
+			// we can call bind on a server endpoint, just like we do with sockets
+			URI uri = URI.create("rdma://" + ipAddress + ":" + port);
+			serverEndpoint.bind(uri);
+			logger.debug("Server bound to address " + uri.toString());
 				
-		// we can accept new connections
-		this.endpoint = serverEndpoint.accept();
-		logger.debug("Connection accepted.");
+			// we can accept new connections
+			this.endpoint = serverEndpoint.accept();
+			logger.debug("Connection accepted.");
+		} catch (Exception e) {
+			throw new RdmaConnectionException(e.getMessage());
+		}
 	}
 	
 	/**
@@ -97,7 +105,7 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public byte[] rdmaReceive(int id) throws IOException, InterruptedException {
+	public byte[] rdmaReceive(int id) throws RdmaConnectionException {
 		createRecvOperation(id);
 		logger.debug("Created receive operation.");
 		postReceiveOperation();
@@ -116,7 +124,7 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void rdmaSend(byte[] message, int id) throws IOException, InterruptedException {
+	public void rdmaSend(byte[] message, int id) throws RdmaConnectionException {
 		writeOnSendBuffer(message);
 		logger.debug("Wrote on the local buffer.");
 		createWRSendOperation();
@@ -139,7 +147,7 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public void prepareRdmaAccess(byte[] message, int id) throws IOException, InterruptedException {
+	public void prepareRdmaAccess(byte[] message, int id) throws RdmaConnectionException {
 		writeOnBuffer(message);
 		sendRdmaInfo(message.length, id);
 	}
@@ -151,7 +159,7 @@ public class ServerRdmaConnection {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	private void sendRdmaInfo(int lengthOfRdmaAccess, int id) throws IOException, InterruptedException {
+	private void sendRdmaInfo(int lengthOfRdmaAccess, int id) throws RdmaConnectionException {
 		// prepare a message with the RDMA information of the data buffer
 		// it we allow the client to read using a one-sided RDMA operation			
 		ByteBuffer sendBuf = endpoint.getSendBuf();
@@ -179,11 +187,15 @@ public class ServerRdmaConnection {
 	 */
 	//TODO: Maybe we can do better and not simply blindly wait for next event, but instead check what the event actually is.
 	// Nonetheless, it works this way as well (in the Github examples it is the same).
-	private int waitForTransmission() throws InterruptedException {
-		// take the event confirming that the message was sent
-		IbvWC wc = endpoint.getWcEvents().take();
-		logger.debug("Message transmitted, wr_id " + wc.getWr_id());
-		return wc.getByte_len();
+	private int waitForTransmission() throws RdmaConnectionException {
+		try {
+			// take the event confirming that the message was sent
+			IbvWC wc = endpoint.getWcEvents().take();
+			logger.debug("Message transmitted, wr_id " + wc.getWr_id());
+			return wc.getByte_len();
+		} catch (InterruptedException e) {
+			throw new RdmaConnectionException(e.getMessage());
+		}
 	}
 	
 	
@@ -206,10 +218,14 @@ public class ServerRdmaConnection {
 	 * @param id
 	 * @throws IOException
 	 */
-	private void postSendOperation(int id) throws IOException {
-		SVCPostSend postSend = endpoint.postSend(endpoint.getWrList_send());
-		postSend.getWrMod(0).setWr_id(id);
-		postSend.execute().free();
+	private void postSendOperation(int id) throws RdmaConnectionException {
+		try {
+			SVCPostSend postSend = endpoint.postSend(endpoint.getWrList_send());
+			postSend.getWrMod(0).setWr_id(id);
+			postSend.execute().free();
+		} catch (IOException e) {
+			throw new RdmaConnectionException(e.getMessage());
+		}
 	}
 	
 	/**
@@ -226,9 +242,13 @@ public class ServerRdmaConnection {
 	 * @param id
 	 * @throws IOException
 	 */
-	private void postReceiveOperation() throws IOException {
-		SVCPostRecv postRecv = endpoint.postRecv(endpoint.getWrList_recv());
-		postRecv.execute().free();
+	private void postReceiveOperation() throws RdmaConnectionException {
+		try {
+			SVCPostRecv postRecv = endpoint.postRecv(endpoint.getWrList_recv());
+			postRecv.execute().free();
+		} catch (IOException e) {
+			throw new RdmaConnectionException(e.getMessage());
+		}
 	}
 	
 	/**
