@@ -19,7 +19,7 @@ public class RdmaImageHandler extends RdmaHandler {
 		super(rdmaConnection);
 	}
 
-	private byte[] requestImage() throws IOException, InterruptedException {
+	private byte[] requestImage() throws RdmaConnectionException {
 		rdmaConnection.rdmaSend(GET_IMAGE.getBytes(), GET_IMAGE_ID);
 		logger.debug("Requested the image with the request " + GET_IMAGE + " and id " + GET_IMAGE_ID);
 		
@@ -66,9 +66,8 @@ public class RdmaImageHandler extends RdmaHandler {
         		os.write(decodedImage);
         		os.close();
         		logger.debug("Sent the response back.");
-			} catch (Exception e) {
+			} catch (RdmaConnectionException e) {
 				logger.debug(e.getMessage());
-				e.printStackTrace();
 				send504Error(t);
 			}
     	}

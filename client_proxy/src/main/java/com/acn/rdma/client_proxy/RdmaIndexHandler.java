@@ -20,7 +20,7 @@ public class RdmaIndexHandler extends RdmaHandler {
 	}
 
 
-	private byte[] requestIndex() throws IOException, InterruptedException {
+	private byte[] requestIndex() throws RdmaConnectionException {
 		rdmaConnection.rdmaSend(GET_INDEX.getBytes(), GET_INDEX_ID);
 		logger.debug("Sent a " + GET_INDEX + " with id " + GET_INDEX_ID + " to the server.");
 		
@@ -61,24 +61,16 @@ public class RdmaIndexHandler extends RdmaHandler {
         	byte[] index = null;
         	try {
 				index = requestIndex();
-        	} catch (Exception e) {
+	        	logger.debug("Sending 200 for the html file back to the browser...");
+	        	t.sendResponseHeaders(200, index.length);
+	        	OutputStream os = t.getResponseBody();
+	        	os.write(index);
+	        	os.close();
+	        	logger.debug("Sent the response back.");	
+        	} catch (RdmaConnectionException e) {
 				logger.debug(e.getMessage());
-				e.printStackTrace();
 				send504Error(t);
 			}
-        	
-        	if (index != null) {
-        		logger.debug("Sending 200 for the html file back to the browser...");
-        		t.sendResponseHeaders(200, index.length);
-        		OutputStream os = t.getResponseBody();
-        		os.write(index);
-        		os.close();
-        		logger.debug("Sent the response back.");
-        	}
-        	else {
-        		logger.debug("Sending 504 (Gateway Time-out) back to the browser...");
-        		send504Error(t);
-        	}
     	}
     	else {
     		send404Error(t);

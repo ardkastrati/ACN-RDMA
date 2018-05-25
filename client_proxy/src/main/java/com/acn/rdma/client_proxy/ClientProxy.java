@@ -42,9 +42,10 @@ public class ClientProxy {
 	 * Starts the proxy, which has two duties. Create a RDMA connection to the server. 
 	 * Secondly, it also creates an HTTP server in the client, whose duty is to intercept
 	 * the HTTP requests from the browser. 
-	 * @throws Exception 
+	 * @throws IOException in case the 
+	 * @throws {@link RdmaConnectionException} 
 	 */
-	public void start() throws Exception {
+	public void start() throws RdmaConnectionException, IOException {
 		logger.debug("Connecting to the server...");
 		ClientRdmaConnection rdmaConnectionToServer = createRDMAConnectionToServer();
 		logger.debug("Successfully connected to the server.");
@@ -55,7 +56,7 @@ public class ClientProxy {
 	}
 	
 	
-	private ClientRdmaConnection createRDMAConnectionToServer() throws Exception {
+	private ClientRdmaConnection createRDMAConnectionToServer() throws RdmaConnectionException {
 		logger.debug("Creating a RDMA connection...");
 		ClientRdmaConnection connection = new ClientRdmaConnection();
 		logger.debug("Connecting...");
@@ -63,7 +64,6 @@ public class ClientProxy {
 		logger.debug("Connected.");
 		return connection;
 	}
-
 
 	private void startInterceptionFromBrowser(ClientRdmaConnection rdmaConnection) throws IOException {
 		// create a handler for the index.html file

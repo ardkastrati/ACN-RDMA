@@ -1,6 +1,6 @@
 package com.acn.rdma.client_proxy;
 /**
- * The RdmaConnectionException occurs when an error occured during the communication in the rdma
+ * The RdmaConnectionException occurs when an error occurred during the communication in the rdma
  * connection between the client and the server.
  * 
  * @author ardkastrati

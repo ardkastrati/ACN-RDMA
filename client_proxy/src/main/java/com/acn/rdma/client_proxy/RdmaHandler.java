@@ -80,7 +80,7 @@ public abstract class RdmaHandler implements HttpHandler {
     protected byte[] getErrorBody(int errorCode) {
     	String path = null;
     	switch (errorCode) {
-    	case 404:
+    	case 404: 
     		path = PATH_404;
     		break;
     	case 504:
@@ -95,7 +95,6 @@ public abstract class RdmaHandler implements HttpHandler {
 			return fileToBytes(path);
 		} catch (IOException e) {
 			logger.debug("Error converting the file " + path + " to string");
-			e.printStackTrace();
 			return new byte[0];
 		}
     }
