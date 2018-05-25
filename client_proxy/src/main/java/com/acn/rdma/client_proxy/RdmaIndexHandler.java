@@ -15,8 +15,8 @@ import com.sun.net.httpserver.HttpExchange;
 public class RdmaIndexHandler extends RdmaHandler {
 	
 	
-	public RdmaIndexHandler(ClientRdmaConnection rdmaConnection) {
-		super(rdmaConnection);
+	public RdmaIndexHandler(String serverIpAddress, int serverPort) {
+		super(serverIpAddress, serverPort);
 	}
 
 
@@ -58,10 +58,12 @@ public class RdmaIndexHandler extends RdmaHandler {
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
         	logger.debug("Found the request");
         	
-        	
         	try {
         		byte[] index = null;
+        		System.out.println("before synchronized");
+        		verifyConnection();
         		synchronized (rdmaConnection) {
+        			System.out.println("in synchronized");
         			index = requestIndex();
  				}
 	        	logger.debug("Sending 200 for the html file back to the browser...");

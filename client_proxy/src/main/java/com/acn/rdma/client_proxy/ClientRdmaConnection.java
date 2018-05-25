@@ -89,7 +89,6 @@ public class ClientRdmaConnection {
 	 * @throws Exception
 	 */
 	public void rdmaConnect(String ipAddress, int port) throws RdmaConnectionException {
-		
 		try {
 			logger.debug("Trying to connect to the server with IP " + ipAddress + " and port " + port) ;
 			//connect to the server

@@ -2,6 +2,14 @@ package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.log4j.Logger;
 import com.sun.net.httpserver.HttpServer;
 
@@ -46,33 +54,19 @@ public class ClientProxy {
 	 * @throws {@link RdmaConnectionException} 
 	 */
 	public void start() throws RdmaConnectionException, IOException {
-		logger.debug("Connecting to the server...");
-		ClientRdmaConnection rdmaConnectionToServer = createRDMAConnectionToServer();
-		logger.debug("Successfully connected to the server.");
-		
 		logger.debug("Starting interception from the browser...");
-		startInterceptionFromBrowser(rdmaConnectionToServer);
+		startInterceptionFromBrowser();
 		logger.debug("Interception started.");
 	}
-	
-	
-	private ClientRdmaConnection createRDMAConnectionToServer() throws RdmaConnectionException {
-		logger.debug("Creating a RDMA connection...");
-		ClientRdmaConnection connection = new ClientRdmaConnection();
-		logger.debug("Connecting...");
-		connection.rdmaConnect(serverIpAddress, serverPort);
-		logger.debug("Connected.");
-		return connection;
-	}
 
-	private void startInterceptionFromBrowser(ClientRdmaConnection rdmaConnection) throws IOException {
+	private void startInterceptionFromBrowser() throws IOException {
 		// create a handler for the index.html file
 		HttpServer server = HttpServer.create(new InetSocketAddress(interceptionPort), 0);
-        server.createContext("/", new RdmaIndexHandler(rdmaConnection));
+        server.createContext("/", new RdmaIndexHandler(serverIpAddress, serverPort));
         server.setExecutor(null); // creates a default executor
         
         // create a handler for the image
-        server.createContext("/network.png", new RdmaImageHandler(rdmaConnection));
+        server.createContext("/network.png", new RdmaImageHandler(serverIpAddress, serverPort));
         server.setExecutor(null);
         
         server.start();

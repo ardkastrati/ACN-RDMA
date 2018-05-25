@@ -15,8 +15,8 @@ import com.sun.net.httpserver.HttpExchange;
 @SuppressWarnings("restriction")
 public class RdmaImageHandler extends RdmaHandler {
 	
-	public RdmaImageHandler(ClientRdmaConnection rdmaConnection) {
-		super(rdmaConnection);
+	public RdmaImageHandler(String serverIpAddress, int serverPort) {
+		super(serverIpAddress, serverPort);
 	}
 
 	private byte[] requestImage() throws RdmaConnectionException {
@@ -57,8 +57,9 @@ public class RdmaImageHandler extends RdmaHandler {
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
     			byte[] image = null;
+    			verifyConnection();
     			synchronized (rdmaConnection) {
-    			   image = requestImage();
+    				image = requestImage();
 				}
 				byte[] decodedImage = Base64.getMimeDecoder().decode(image);
 				t.sendResponseHeaders(200, decodedImage.length);
