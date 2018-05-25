@@ -38,6 +38,7 @@ import com.ibm.disni.rdma.verbs.SVCPostSend;
 public class ClientRdmaConnection {
 	
 	private static final Logger logger = Logger.getLogger(ClientRdmaConnection.class);
+	public static final int STATUS_CODE_200_OK = 200;
 	
 	private ClientEndpoint clientEndpoint;
 	
@@ -204,22 +205,28 @@ public class ClientRdmaConnection {
 		//read the message that the server sent with information about the 'RDMA read' that we should do
 		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
 		recvBuf.clear();
-		long addr = recvBuf.getLong();
-		int length = recvBuf.getInt();
-		int lkey = recvBuf.getInt();
-		logger.debug("Got rdma information, addr " + addr + ", length " + length + ", key " + lkey);
+		int status_code = recvBuf.getInt();
+		if (status_code == STATUS_CODE_200_OK) {
+			long addr = recvBuf.getLong();
+			int length = recvBuf.getInt();
+			int lkey = recvBuf.getInt();
+			logger.debug("Got rdma information, status code " + status_code + ", addr " + addr + ", length " + length + ", key " + lkey);
 
-		recvBuf.clear();
-		//the RDMA information given above identifies a RDMA buffer at the server side
-		//let's issue a one-sided RDMA read operation to fetch the content from that buffer
-		IbvSendWR sendWR = clientEndpoint.getSendWR();
-		sendWR.setOpcode(IbvSendWR.IBV_WR_RDMA_READ);
-		sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
-		sendWR.getRdma().setRemote_addr(addr);
-		sendWR.getRdma().setRkey(lkey);	
-		sendWR.getSge(0).setLength(length); //0 since we only have one scatter/gather element. We tried to keep things simple.
-		
-		logger.debug("Stored the values in the RDMA read operation.");
+			recvBuf.clear();
+			//the RDMA information given above identifies a RDMA buffer at the server side
+			//let's issue a one-sided RDMA read operation to fetch the content from that buffer
+			IbvSendWR sendWR = clientEndpoint.getSendWR();
+			sendWR.setOpcode(IbvSendWR.IBV_WR_RDMA_READ);
+			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
+			sendWR.getRdma().setRemote_addr(addr);
+			sendWR.getRdma().setRkey(lkey);	
+			sendWR.getSge(0).setLength(length); //0 since we only have one scatter/gather element. We tried to keep things simple.
+			
+			logger.debug("Stored the values in the RDMA read operation.");
+		}
+		else {
+			// TODO: send an exception when RdmaConnectionException is created
+		}
 	}
 	
 	

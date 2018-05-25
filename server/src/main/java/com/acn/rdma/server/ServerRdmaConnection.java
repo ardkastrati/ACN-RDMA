@@ -37,6 +37,7 @@ import com.ibm.disni.rdma.verbs.SVCPostSend;
 public class ServerRdmaConnection {
 	
 	private static final Logger logger = Logger.getLogger(ServerRdmaConnection.class);
+	public static final int STATUS_CODE_200_OK = 200;
 	
 	private RdmaServerEndpoint<ServerEndpoint> serverEndpoint;
 	private ServerEndpoint endpoint;
@@ -155,6 +156,7 @@ public class ServerRdmaConnection {
 		// prepare a message with the RDMA information of the data buffer
 		// it we allow the client to read using a one-sided RDMA operation			
 		ByteBuffer sendBuf = endpoint.getSendBuf();
+		sendBuf.putInt(STATUS_CODE_200_OK);
 		sendBuf.putLong(endpoint.getDataMr().getAddr());
 		sendBuf.putInt(lengthOfRdmaAccess);
 		sendBuf.putInt(endpoint.getDataMr().getLkey());
