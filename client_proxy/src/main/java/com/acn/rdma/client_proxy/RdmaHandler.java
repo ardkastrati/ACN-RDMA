@@ -51,52 +51,61 @@ public abstract class RdmaHandler implements HttpHandler {
 	 * Constructs the interceptor with the given RDMA connection, where it forwards the data intercepted.
 	 * @param rdmaConnection the connection to forward the data.
 	 */
-	public RdmaHandler(String serverIpAddress, int serverPort) {
+	public RdmaHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
+		this.rdmaConnection = rdmaConnection;
 		this.serverIpAddress = serverIpAddress;
 		this.serverPort = serverPort;
+		
 		try {
-			this.rdmaConnection = createRDMAConnectionToServer();
+			verifyConnection();
 		} catch (RdmaConnectionException e) {
-			logger.debug("Connection to the server failed");
+			logger.debug("Failed to connect to the server");
 		}
 	}
 
-
-	private ClientRdmaConnection createRDMAConnectionToServer() throws RdmaConnectionException {
+	
+	private void connectToServer() throws RdmaConnectionException {
 		logger.debug("Connecting to the server...");
-			
-		ClientRdmaConnection connection = null;
 		
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
-		final Future future = executor.submit(new RdmaConnectToServer(serverIpAddress, serverPort));
-		executor.shutdown();
+		final Future future = executor.submit(new RdmaConnectToServer(rdmaConnection, serverIpAddress, serverPort));
 		
 		try {
-			connection = (ClientRdmaConnection) future.get(TIMEOUT, TimeUnit.SECONDS);
+			future.get(TIMEOUT, TimeUnit.SECONDS);
 		} catch (Exception e) {
+			e.printStackTrace();
+			executor.shutdownNow();
+			System.out.println("Executor is shutdown: " + executor.isShutdown());
+			System.out.println("All tasks have been terminated: " + executor.isTerminated());
 			throw new RdmaConnectionException(e.getMessage());
 		}
 		
-		// stop trying to connect after the timeout
-		if (!executor.isTerminated()) {
-			executor.shutdownNow();
-		}
+		executor.shutdown();
 		
-		logger.debug("Successfully connected to the server.");
-		
-		return connection;
+		logger.debug("Successfully connected to the server.");	
 	}
+	
 	
 	protected void verifyConnection () throws RdmaConnectionException {
-		if (isConnectionDown()) {
-			System.out.println("The connection is down");
-			rdmaConnection = createRDMAConnectionToServer();
+		if (isConnectionInitialized()) {
+			logger.debug("Verifier: The connection is initialized");
+			if (! rdmaConnection.isConnected()) {
+				logger.debug("Verifier: The connection to the server is down");
+				connectToServer();
+			}
+			else {
+				logger.debug("Verifier: The connection to the server is working perfectly");
+			}
 		}
-		System.out.println("The connection is up");
+		else {
+			logger.debug("Verifier: The connection is not initialized");
+			this.rdmaConnection = new ClientRdmaConnection();
+			connectToServer();
+		}
 	}
 	
-	protected boolean isConnectionDown() {
-		return rdmaConnection == null;
+	protected boolean isConnectionInitialized() {
+		return rdmaConnection != null;
 	}
 	
 	
@@ -106,14 +115,14 @@ public abstract class RdmaHandler implements HttpHandler {
 	 * @throws IOException
 	 */
 	protected void send404Error(HttpExchange t) throws IOException {
-		logger.debug("Sending 404 back back to the browser...");
+		//logger.debug("Sending 404 back back to the browser...");
 		byte[] errorBody = getErrorBody(404);
 		t.sendResponseHeaders(404, errorBody.length);
 		OutputStream os = t.getResponseBody();
 		os.write(errorBody);
 		os.close();
 		t.getResponseBody().close();
-		logger.debug("Sent the response back.");
+		//logger.debug("Sent the response back.");
 	}
 	
 	/**
@@ -130,6 +139,14 @@ public abstract class RdmaHandler implements HttpHandler {
 		os.close();
 		t.getResponseBody().close();
 		logger.debug("Sent the response back.");
+		
+		// if we are sending a 504 error it means we got disconnected
+		// In disni's RdmaEndpoint.java the state of the endpoint does not
+		// go to CONN_STATE_INITIALIZED again so it doesn't let us try to
+		// reconnect
+		// The only alternative is to close the endpoint and create a new one
+		rdmaConnection.closeEndpoint();
+		rdmaConnection = null;
 	}
 	
     protected byte[] getErrorBody(int errorCode) {
@@ -172,24 +189,23 @@ public abstract class RdmaHandler implements HttpHandler {
 	
 	private class RdmaConnectToServer implements Callable<ClientRdmaConnection> {
 		
+		ClientRdmaConnection connection;
 		private String serverIpAddress;
 		private int serverPort;
 		
 		
-		public RdmaConnectToServer(String serverIpAddress, int serverPort) {
+		public RdmaConnectToServer(ClientRdmaConnection connection, String serverIpAddress, int serverPort) {
+			this.connection = connection;
 			this.serverIpAddress = serverIpAddress;
 			this.serverPort = serverPort;
 		}
 
 		public ClientRdmaConnection call() throws Exception {
-			logger.debug("Creating a RDMA connection...");
-			ClientRdmaConnection connection = new ClientRdmaConnection();
-			
 			logger.debug("Connecting...");
 			connection.rdmaConnect(serverIpAddress, serverPort);
 			logger.debug("Connected.");
 			
-			return connection;	
+			return connection;
 		}
 		
 	}

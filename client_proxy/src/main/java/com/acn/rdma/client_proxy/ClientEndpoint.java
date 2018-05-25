@@ -59,7 +59,7 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	private ByteBuffer sendBuf;
 	private IbvMr sendMr;
 	private ByteBuffer recvBuf;
-	private IbvMr recvMr;	
+	private IbvMr recvMr;
 	
 	private LinkedList<IbvSendWR> wrList_send;
 	private IbvSge sgeSend;
@@ -160,7 +160,6 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 		sgeListSend.add(sgeSend);
 		sendWR.setSg_list(sgeListSend);
 		wrList_send.add(sendWR);
-		
 	}
 	
 	/**
@@ -192,6 +191,18 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	public synchronized void dispatchCmEvent(RdmaCmEvent cmEvent) throws IOException {
 		super.dispatchCmEvent(cmEvent);
 		logger.debug("Detected that it was connected/disconnected.");
+	}
+	
+	@Override
+	public synchronized void close() throws IOException, InterruptedException {
+		//super.getCqProvider().getCQ().destroyCQ();
+		//super.getCqProvider().close();
+		logger.debug("cq provider closed");
+		super.deregisterMemory(dataMr);
+		super.deregisterMemory(sendMr);
+		super.deregisterMemory(recvMr);
+		logger.debug("Memory deregistered");
+		super.close();
 	}
 	
 	/**

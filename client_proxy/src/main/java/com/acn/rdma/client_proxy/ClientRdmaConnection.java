@@ -41,6 +41,7 @@ public class ClientRdmaConnection {
 	public static final int STATUS_CODE_200_OK = 200;
 	
 	private ClientEndpoint clientEndpoint;
+	private RdmaActiveEndpointGroup<ClientEndpoint> clientEndpointGroup;
 	
 	/**
 	 * Creates the client RDMA endpoint. 
@@ -65,7 +66,6 @@ public class ClientRdmaConnection {
 		try {
 			logger.debug("Creating the endpoint group...");
 			//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-			RdmaActiveEndpointGroup<ClientEndpoint> clientEndpointGroup;
 			clientEndpointGroup = new RdmaActiveEndpointGroup<ClientEndpoint>(1000, false, 128, 4, 128);
 			logger.debug("Creating the factory...");
 			ClientFactory clientFactory = new ClientFactory(clientEndpointGroup);
@@ -330,6 +330,24 @@ public class ClientRdmaConnection {
 		recvBuf.clear();
 		return message;
 	}
-
+	
+	
+	public boolean isConnected() {
+		return clientEndpoint.isConnected();
+	}
+	
+	public void closeEndpoint() {
+		try {
+			clientEndpoint.close();
+			clientEndpointGroup.close();
+		} catch (IOException e) {
+			logger.debug("Problems closing the endpoint");
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			logger.debug("Problems closing the endpoint");
+			e.printStackTrace();
+		}
+		logger.debug("Endpoint closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+	}
 	
 }

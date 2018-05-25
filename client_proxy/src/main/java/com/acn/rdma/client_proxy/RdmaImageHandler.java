@@ -15,8 +15,8 @@ import com.sun.net.httpserver.HttpExchange;
 @SuppressWarnings("restriction")
 public class RdmaImageHandler extends RdmaHandler {
 	
-	public RdmaImageHandler(String serverIpAddress, int serverPort) {
-		super(serverIpAddress, serverPort);
+	public RdmaImageHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
+		super(rdmaConnection, serverIpAddress, serverPort);
 	}
 
 	private byte[] requestImage() throws RdmaConnectionException {

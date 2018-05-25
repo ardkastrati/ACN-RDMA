@@ -15,8 +15,8 @@ import com.sun.net.httpserver.HttpExchange;
 public class RdmaIndexHandler extends RdmaHandler {
 	
 	
-	public RdmaIndexHandler(String serverIpAddress, int serverPort) {
-		super(serverIpAddress, serverPort);
+	public RdmaIndexHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
+		super(rdmaConnection, serverIpAddress, serverPort);
 	}
 
 
@@ -53,9 +53,10 @@ public class RdmaIndexHandler extends RdmaHandler {
 	 * </p>
 	 */
     public void handle(HttpExchange t) throws IOException {
-    	logger.debug("Starting to handle the request " + t.getRequestURI());
+    	
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
+    		logger.debug("Starting to handle the request " + t.getRequestURI());
         	logger.debug("Found the request");
         	
         	try {
