@@ -56,9 +56,11 @@ public class RdmaImageHandler extends RdmaHandler {
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
-				byte[] image = requestImage();
+    			byte[] image = null;
+    			synchronized (rdmaConnection) {
+    			   image = requestImage();
+				}
 				byte[] decodedImage = Base64.getMimeDecoder().decode(image);
-				//byte[] decoded = Base64.getMimeDecoder().decode(image.getBytes());
 				t.sendResponseHeaders(200, decodedImage.length);
 				t.getResponseHeaders().set("Content-Type", "image/png");
 				logger.debug("Sending 200 for the image back to the browser...");

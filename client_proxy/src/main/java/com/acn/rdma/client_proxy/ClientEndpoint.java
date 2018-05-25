@@ -14,6 +14,7 @@ import com.ibm.disni.rdma.verbs.IbvRecvWR;
 import com.ibm.disni.rdma.verbs.IbvSendWR;
 import com.ibm.disni.rdma.verbs.IbvSge;
 import com.ibm.disni.rdma.verbs.IbvWC;
+import com.ibm.disni.rdma.verbs.RdmaCmEvent;
 import com.ibm.disni.rdma.verbs.RdmaCmId;
 
 
@@ -185,6 +186,12 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	
 	public void dispatchCqEvent(IbvWC wc) throws IOException {
 		wcEvents.add(wc);
+	}
+	
+	@Override
+	public synchronized void dispatchCmEvent(RdmaCmEvent cmEvent) throws IOException {
+		super.dispatchCmEvent(cmEvent);
+		logger.debug("Detected that it was connected/disconnected.");
 	}
 	
 	/**

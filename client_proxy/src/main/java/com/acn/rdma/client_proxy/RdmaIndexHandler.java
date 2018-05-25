@@ -58,9 +58,12 @@ public class RdmaIndexHandler extends RdmaHandler {
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
         	logger.debug("Found the request");
         	
-        	byte[] index = null;
+        	
         	try {
-				index = requestIndex();
+        		byte[] index = null;
+        		synchronized (rdmaConnection) {
+        			index = requestIndex();
+ 				}
 	        	logger.debug("Sending 200 for the html file back to the browser...");
 	        	t.sendResponseHeaders(200, index.length);
 	        	OutputStream os = t.getResponseBody();
