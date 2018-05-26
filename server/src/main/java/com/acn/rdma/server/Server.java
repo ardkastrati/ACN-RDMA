@@ -71,12 +71,16 @@ public class Server {
 			}
 		} catch (IOException e) {
 			logger.debug(e.getMessage());
+			logger.debug("Closing the connection and the endpoints ...");
 			((ServerEndpointDiSNIAdapter) connection).close();
 			serverEndpoint.close();
 			serverEndpointGroup.close();
-			logger.debug("The server is shut down.");
+			logger.debug("Connection and endpoints closed");
+			logger.debug("Reinitializing the endpoints ...");
+			start();
 		}
 	}
+
 	
 	private void createEndpoint() throws IOException {
 		logger.debug("Creating the endpoint group...");
