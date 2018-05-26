@@ -68,8 +68,11 @@ public class RdmaIndexHandler extends RdmaHandler {
         	try {
         		byte[] index = null;
         		synchronized (rdmaConnection) {
-        			index = requestIndex();
- 				}
+        			logger.debug("Hini qetu  + " + rdmaConnection.isConnected());
+    				if (!rdmaConnection.isConnected()) connectToServer();
+    				index = requestIndex();
+				}
+        		
 	        	logger.debug("Sending 200 for the html file back to the browser...");
 	        	t.sendResponseHeaders(200, index.length);
 	        	OutputStream os = t.getResponseBody();

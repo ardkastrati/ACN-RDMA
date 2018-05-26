@@ -1,4 +1,7 @@
 package com.acn.rdma.client_proxy;
+
+import java.io.IOException;
+
 /**
  * The RdmaConnectionException occurs when an error occurred during the communication in the rdma
  * connection between the client and the server.
@@ -6,7 +9,7 @@ package com.acn.rdma.client_proxy;
  * @author ardkastrati
  * @version 1
  */
-public class RdmaConnectionException extends Exception {
+public class RdmaConnectionException extends IOException {
 
 
     /**

@@ -71,7 +71,8 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	private LinkedList<IbvSge> sgeListRecv;
 	private IbvRecvWR recvWR;
 	
-	private ArrayBlockingQueue<IbvWC> wcEvents;
+	protected ArrayBlockingQueue<IbvWC> wcEvents;
+	protected static final IbvWC POISON_INSTANCE = new IbvWC();
 	
 	
 	/**

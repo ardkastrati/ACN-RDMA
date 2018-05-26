@@ -40,7 +40,7 @@ public abstract class RdmaHandler implements HttpHandler {
 	
 	protected static final int FINAL_SIGNAL_ID = 3000;
 	
-	protected static final int TIMEOUT = 2; // seconds
+	protected static final int TIMEOUT = 5; // seconds
 	
 	protected ClientRdmaConnection rdmaConnection;
 	private String serverIpAddress;
@@ -55,12 +55,13 @@ public abstract class RdmaHandler implements HttpHandler {
 		this.rdmaConnection = rdmaConnection;
 		this.serverIpAddress = serverIpAddress;
 		this.serverPort = serverPort;
-		
+		/*
 		try {
 			connectToServer();
 		} catch (RdmaConnectionException e) {
 			logger.debug("Failed to connect to the server");
-		}
+		}*/
+
 	}
 
 	/**
@@ -69,7 +70,7 @@ public abstract class RdmaHandler implements HttpHandler {
 	 * 
 	 * @throws RdmaConnectionException if the connection fails, either due to timeout or another connection error
 	 */
-	private void connectToServer() throws RdmaConnectionException {
+	protected void connectToServer() throws RdmaConnectionException {
 		logger.debug("Connecting to the server...");
 		
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -78,10 +79,8 @@ public abstract class RdmaHandler implements HttpHandler {
 		try {
 			future.get(TIMEOUT, TimeUnit.SECONDS);
 		} catch (Exception e) {
-			e.printStackTrace();
 			executor.shutdownNow();
-			System.out.println("Executor is shutdown: " + executor.isShutdown());
-			System.out.println("All tasks have been terminated: " + executor.isTerminated());
+			logger.debug("Not able to connect to the server, timout reached.");
 			throw new RdmaConnectionException(e.getMessage());
 		}
 		

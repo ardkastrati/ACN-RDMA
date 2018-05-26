@@ -63,9 +63,12 @@ public class RdmaImageHandler extends RdmaHandler {
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
     			byte[] image = null;
+				if (!rdmaConnection.isConnected()) connectToServer();
+				
     			synchronized (rdmaConnection) {
     				image = requestImage();
 				}
+    			
 				byte[] decodedImage = Base64.getMimeDecoder().decode(image);
 				t.sendResponseHeaders(200, decodedImage.length);
 				t.getResponseHeaders().set("Content-Type", "image/png");
@@ -74,6 +77,7 @@ public class RdmaImageHandler extends RdmaHandler {
         		os.write(decodedImage);
         		os.close();
         		logger.debug("Sent the response back.");
+        		
 			} catch (RdmaConnectionException e) {
 				logger.debug(e.getMessage());
 				send504Error(t);
