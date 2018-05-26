@@ -16,7 +16,6 @@ import com.sun.net.httpserver.HttpExchange;
 @SuppressWarnings("restriction")
 public class RdmaImageHandler extends RdmaHandler {
 	
-	private int id = 1;
 	public RdmaImageHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
 		super(rdmaConnection, serverIpAddress, serverPort);
 	}
@@ -60,7 +59,7 @@ public class RdmaImageHandler extends RdmaHandler {
 	 * </p>
 	 */
     public void handle(HttpExchange t) throws IOException {
-    	logger.debug("Id: " + id + " starting to handle the request " + t.getRequestURI());
+    	logger.debug("Starting to handle the request " + t.getRequestURI());
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
