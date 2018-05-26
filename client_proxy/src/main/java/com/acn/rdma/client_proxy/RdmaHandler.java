@@ -55,12 +55,12 @@ public abstract class RdmaHandler implements HttpHandler {
 		this.rdmaConnection = rdmaConnection;
 		this.serverIpAddress = serverIpAddress;
 		this.serverPort = serverPort;
-		/*
+	
 		try {
 			connectToServer();
 		} catch (RdmaConnectionException e) {
 			logger.debug("Failed to connect to the server");
-		}*/
+		}
 
 	}
 
