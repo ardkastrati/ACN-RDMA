@@ -78,10 +78,8 @@ public abstract class RdmaHandler implements HttpHandler {
 		try {
 			future.get(TIMEOUT, TimeUnit.SECONDS);
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.debug("Connection to the server timed out");
 			executor.shutdownNow();
-			System.out.println("Executor is shutdown: " + executor.isShutdown());
-			System.out.println("All tasks have been terminated: " + executor.isTerminated());
 			throw new RdmaConnectionException(e.getMessage());
 		}
 		
