@@ -1,15 +1,12 @@
 package com.acn.rdma.server;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.io.IOException;
 import java.util.Base64;
 import org.apache.commons.io.IOUtils;
 
 import org.apache.log4j.Logger;
 
-import com.ibm.disni.rdma.RdmaActiveEndpointGroup;
-import com.ibm.disni.rdma.RdmaServerEndpoint;
 
 /**
  * This class implements the server specified in the assignment. 
@@ -40,10 +37,7 @@ public class Server {
 	private String ipAddress;
 	private int port;
 	private ServerRdmaConnection connection;
-	
-	private RdmaActiveEndpointGroup<ServerEndpointDiSNIAdapter> serverEndpointGroup;
-	private RdmaServerEndpoint<ServerEndpointDiSNIAdapter> serverEndpoint;
-	private ServerFactory serverFactory;
+
 	
 	/**
 	 * Constructs the server.
@@ -53,70 +47,43 @@ public class Server {
 	public Server(String ipAddress, int port) {
 		this.ipAddress = ipAddress;
 		this.port = port;
+		this.connection = new ServerEndpointDiSNIAdapter();
 	}
 	
 	/**
 	 * Starts the server. The server firsts wait for a connection request from the client.
 	 * After the connection, it posts a receive working request and waits for new requests continuously.
-	 * If an error occurs, the server shuts down himself. 
+	 * If an error occurs, the server restarts himself (We want to keep the server working). 
 	 * @throws InterruptedException 
 	 * @throws IOException 
 	 * @throws Exception
 	 */
 	public void start() throws IOException, InterruptedException {
 		try {
-			createEndpoint();
+			createConnection();
 			while (true) {
 				acceptNextRequest();
 			}
 		} catch (IOException e) {
 			logger.debug(e.getMessage());
-			logger.debug("Closing the connection and the endpoints ...");
-			((ServerEndpointDiSNIAdapter) connection).close();
-			serverEndpoint.close();
-			serverEndpointGroup.close();
-			logger.debug("Connection and endpoints closed");
-			logger.debug("Reinitializing the endpoints ...");
 			start();
 		}
 	}
 
-	
-	private void createEndpoint() throws IOException {
-		logger.debug("Creating the endpoint group...");
-		//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-		serverEndpointGroup = new RdmaActiveEndpointGroup<ServerEndpointDiSNIAdapter>(1000, false, 128, 4, 128);
-		logger.debug("Creating the factory...");
-		serverFactory = new ServerFactory(serverEndpointGroup);
-		logger.debug("Initializing the group with the factory...");
-		serverEndpointGroup.init(serverFactory);
-		logger.debug("Group and the factory created.");
-		logger.debug("Creating the endpoint.");
-		serverEndpoint = serverEndpointGroup.createServerEndpoint();
-		logger.debug("Endpoint successfully created.");
-		acceptRdmaConnection(serverEndpoint);
-	}
 	/**
 	 * It accepts the connection from the client in the given ip address and port.
 	 * @param ipAddress
 	 * @param port
 	 * @throws Exception
 	 */
-	private void acceptRdmaConnection(RdmaServerEndpoint<ServerEndpointDiSNIAdapter> serverEndpoint) throws RdmaConnectionException {
-		try {	
-			// we can call bind on a server endpoint, just like we do with sockets
-			URI uri = URI.create("rdma://" + ipAddress + ":" + port);
-			serverEndpoint.bind(uri);
-			logger.debug("Server bound to address " + uri.toString());
-			
-			// we can accept new connections
-			this.connection = serverEndpoint.accept();
-			logger.debug("Connection accepted.");
-		} catch (Exception e) {
-			throw new RdmaConnectionException(e.getMessage());
-		}
+	private void createConnection() throws RdmaConnectionException {
+		connection.rdmaAccept(ipAddress, port);
 	}
 	
+	/**
+	 * It accepts new requests from the client.
+	 * @throws RdmaConnectionException
+	 */
 	private void acceptNextRequest() throws RdmaConnectionException {
 		String message = new String(connection.rdmaReceive(RECEIVE_ID));
 		if(message.equals(GET_INDEX)) {

@@ -46,7 +46,6 @@ public class ServerApplication {
 			parseArguments(args);
 			logger.debug("Parsing successful.");
 		} catch (ParseException e) {
-			logger.debug(ERROR_ARGUMENTS);
 			System.out.println(ERROR_ARGUMENTS);
 			System.exit(1);
 		}
@@ -55,7 +54,7 @@ public class ServerApplication {
 		try {
 			server.start();
 		} catch (IOException | InterruptedException e) {
-			logger.debug("An unexpected error occurred>: " + e.getMessage());
+			logger.debug("An unexpected error occurred: " + e.getMessage());
 			System.exit(1);
 		}
 	}

@@ -189,6 +189,19 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 		super.close();
 	}
 	
+	@Override
+	public synchronized void dispatchCmEvent(RdmaCmEvent cmEvent) throws IOException {
+		super.dispatchCmEvent(cmEvent);
+		if (cmEvent.getEvent() == RdmaCmEvent.EventType.RDMA_CM_EVENT_DISCONNECTED.ordinal()) {
+			logger.debug("Detected " + RdmaCmEvent.EventType.RDMA_CM_EVENT_DISCONNECTED);
+			//don't let the main thread waiting forever in the arrayblockingqueue.
+			wcEvents.add(POISON_INSTANCE);
+		}
+		else if (cmEvent.getEvent() == RdmaCmEvent.EventType.RDMA_CM_EVENT_CONNECT_RESPONSE.ordinal()) {
+			logger.debug("Detected " + RdmaCmEvent.EventType.RDMA_CM_EVENT_CONNECT_RESPONSE);
+		}
+	}
+	
 	
 	public void dispatchCqEvent(IbvWC wc) throws IOException {
 		wcEvents.add(wc);

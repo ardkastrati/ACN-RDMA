@@ -47,5 +47,11 @@ public interface ServerRdmaConnection {
 	 */
 	public void prepareRdmaAccess(byte[] message, int id) throws RdmaConnectionException;
 	
+	/**
+	 * THe server accepts new connections.
+	 * @throws RdmaConnectionException if an error occurs during the accept.
+	 */
+	public void rdmaAccept(String ipAddres, int port) throws RdmaConnectionException;
+	
 
 }
