@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+/target/archive-tmp/
+/target/generated-resources/
+/target/classes/
+/target/maven-status/
+/target/test-classes/
+>>>>>>> e5f91dfc4753ca0ca9b7b2e2675348bfbc4d3355
 /.settings/
 .classpath
 .project
