@@ -41,7 +41,7 @@ public abstract class RdmaHandler implements HttpHandler {
 	
 	protected static final int FINAL_SIGNAL_ID = 3000;
 	
-	protected static final int TIMEOUT = 5; // seconds
+	protected static final int TIMEOUT = 2; // seconds
 	
 	protected ClientRdmaConnection rdmaConnection;
 	private String serverIpAddress;
