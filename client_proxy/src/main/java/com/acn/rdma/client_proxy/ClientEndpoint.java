@@ -204,7 +204,7 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	public synchronized void close() throws IOException, InterruptedException {
 		//super.getCqProvider().getCQ().destroyCQ();
 		//super.getCqProvider().close();
-		logger.debug("cq provider closed");
+		//logger.debug("cq provider closed");
 		super.deregisterMemory(dataMr);
 		super.deregisterMemory(sendMr);
 		super.deregisterMemory(recvMr);
