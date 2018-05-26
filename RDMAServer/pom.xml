@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.acn.rdma</groupId>
-  <artifactId>server</artifactId>
+  <artifactId>RDMAServer</artifactId>
   <version>0.0.1</version>
   <packaging>jar</packaging>
 
-  <name>server</name>
+  <name>RDMAServer</name>
   <url>http://maven.apache.org</url>
 
   <properties>

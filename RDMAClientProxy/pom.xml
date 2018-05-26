@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.acn.rdma</groupId>
-  <artifactId>client_proxy</artifactId>
+  <artifactId>RDMAClientProxy</artifactId>
   <version>0.0.1</version>
   <packaging>jar</packaging>
 
-  <name>client_proxy</name>
+  <name>RDMAClientProxy</name>
   <url>http://maven.apache.org</url>
 
   <properties>
