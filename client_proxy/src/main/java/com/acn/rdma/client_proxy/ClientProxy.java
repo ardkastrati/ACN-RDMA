@@ -55,21 +55,27 @@ public class ClientProxy {
 	 */
 	public void start() throws RdmaConnectionException, IOException {
 		logger.debug("Starting interception from the browser...");
-		startInterceptionFromBrowser();
-		logger.debug("Interception started.");
-	}
-
-	private void startInterceptionFromBrowser() throws IOException {
+		ClientRdmaConnection rdmaConnection = null;
+		try {
+			logger.debug("Creating a RDMA connection...");
+			rdmaConnection = new ClientRdmaConnection();
+		} catch (RdmaConnectionException e) {
+			e.printStackTrace();
+			logger.debug("Failed creating an rdmaConnection");
+		}
+		
 		// create a handler for the index.html file
 		HttpServer server = HttpServer.create(new InetSocketAddress(interceptionPort), 0);
-        server.createContext("/", new RdmaIndexHandler(serverIpAddress, serverPort));
+        server.createContext("/", new RdmaIndexHandler(rdmaConnection, serverIpAddress, serverPort));
         server.setExecutor(null); // creates a default executor
         
         // create a handler for the image
-        server.createContext("/network.png", new RdmaImageHandler(serverIpAddress, serverPort));
+        server.createContext("/network.png", new RdmaImageHandler(rdmaConnection, serverIpAddress, serverPort));
         server.setExecutor(null);
         
         server.start();
+
+		logger.debug("Interception started.");
 	}
     
 }

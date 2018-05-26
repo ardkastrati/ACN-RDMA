@@ -15,11 +15,17 @@ import com.sun.net.httpserver.HttpExchange;
 public class RdmaIndexHandler extends RdmaHandler {
 	
 	
-	public RdmaIndexHandler(String serverIpAddress, int serverPort) {
-		super(serverIpAddress, serverPort);
+	public RdmaIndexHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
+		super(rdmaConnection, serverIpAddress, serverPort);
 	}
 
 
+	/**
+	 * Requests the file index.html from the server
+	 * 
+	 * @return the byte array representation of the file
+	 * @throws RdmaConnectionException
+	 */
 	private byte[] requestIndex() throws RdmaConnectionException {
 		rdmaConnection.rdmaSend(GET_INDEX.getBytes(), GET_INDEX_ID);
 		logger.debug("Sent a " + GET_INDEX + " with id " + GET_INDEX_ID + " to the server.");
@@ -54,16 +60,14 @@ public class RdmaIndexHandler extends RdmaHandler {
 	 */
     public void handle(HttpExchange t) throws IOException {
     	logger.debug("Starting to handle the request " + t.getRequestURI());
+
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
         	logger.debug("Found the request");
         	
         	try {
         		byte[] index = null;
-        		System.out.println("before synchronized");
-        		verifyConnection();
         		synchronized (rdmaConnection) {
-        			System.out.println("in synchronized");
         			index = requestIndex();
  				}
 	        	logger.debug("Sending 200 for the html file back to the browser...");

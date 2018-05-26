@@ -51,52 +51,43 @@ public abstract class RdmaHandler implements HttpHandler {
 	 * Constructs the interceptor with the given RDMA connection, where it forwards the data intercepted.
 	 * @param rdmaConnection the connection to forward the data.
 	 */
-	public RdmaHandler(String serverIpAddress, int serverPort) {
+	public RdmaHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
+		this.rdmaConnection = rdmaConnection;
 		this.serverIpAddress = serverIpAddress;
 		this.serverPort = serverPort;
+		
 		try {
-			this.rdmaConnection = createRDMAConnectionToServer();
+			connectToServer();
 		} catch (RdmaConnectionException e) {
-			logger.debug("Connection to the server failed");
+			logger.debug("Failed to connect to the server");
 		}
 	}
 
-
-	private ClientRdmaConnection createRDMAConnectionToServer() throws RdmaConnectionException {
+	/**
+	 * Tries to connect the client endpoint to the server
+	 * 
+	 * 
+	 * @throws RdmaConnectionException if the connection fails, either due to timeout or another connection error
+	 */
+	private void connectToServer() throws RdmaConnectionException {
 		logger.debug("Connecting to the server...");
-			
-		ClientRdmaConnection connection = null;
 		
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
-		final Future future = executor.submit(new RdmaConnectToServer(serverIpAddress, serverPort));
-		executor.shutdown();
+		final Future future = executor.submit(new RdmaConnectToServer(rdmaConnection, serverIpAddress, serverPort));
 		
 		try {
-			connection = (ClientRdmaConnection) future.get(TIMEOUT, TimeUnit.SECONDS);
+			future.get(TIMEOUT, TimeUnit.SECONDS);
 		} catch (Exception e) {
+			e.printStackTrace();
+			executor.shutdownNow();
+			System.out.println("Executor is shutdown: " + executor.isShutdown());
+			System.out.println("All tasks have been terminated: " + executor.isTerminated());
 			throw new RdmaConnectionException(e.getMessage());
 		}
 		
-		// stop trying to connect after the timeout
-		if (!executor.isTerminated()) {
-			executor.shutdownNow();
-		}
+		executor.shutdown();
 		
-		logger.debug("Successfully connected to the server.");
-		
-		return connection;
-	}
-	
-	protected void verifyConnection () throws RdmaConnectionException {
-		if (isConnectionDown()) {
-			System.out.println("The connection is down");
-			rdmaConnection = createRDMAConnectionToServer();
-		}
-		System.out.println("The connection is up");
-	}
-	
-	protected boolean isConnectionDown() {
-		return rdmaConnection == null;
+		logger.debug("Successfully connected to the server.");	
 	}
 	
 	
@@ -169,27 +160,32 @@ public abstract class RdmaHandler implements HttpHandler {
 	}
 	
 	
-	
+	/**
+	 * This class tries to connect the client endpoint to the server
+	 * It extends callable to be possible to timeout when the server is offline
+	 */
 	private class RdmaConnectToServer implements Callable<ClientRdmaConnection> {
 		
+		ClientRdmaConnection connection;
 		private String serverIpAddress;
 		private int serverPort;
 		
 		
-		public RdmaConnectToServer(String serverIpAddress, int serverPort) {
+		public RdmaConnectToServer(ClientRdmaConnection connection, String serverIpAddress, int serverPort) {
+			this.connection = connection;
 			this.serverIpAddress = serverIpAddress;
 			this.serverPort = serverPort;
 		}
 
+		/**
+		 * Tries to connect the client endpoint to the server
+		 */
 		public ClientRdmaConnection call() throws Exception {
-			logger.debug("Creating a RDMA connection...");
-			ClientRdmaConnection connection = new ClientRdmaConnection();
-			
 			logger.debug("Connecting...");
 			connection.rdmaConnect(serverIpAddress, serverPort);
 			logger.debug("Connected.");
 			
-			return connection;	
+			return connection;
 		}
 		
 	}

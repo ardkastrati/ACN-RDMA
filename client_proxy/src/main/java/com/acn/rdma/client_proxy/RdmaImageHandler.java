@@ -15,10 +15,17 @@ import com.sun.net.httpserver.HttpExchange;
 @SuppressWarnings("restriction")
 public class RdmaImageHandler extends RdmaHandler {
 	
-	public RdmaImageHandler(String serverIpAddress, int serverPort) {
-		super(serverIpAddress, serverPort);
+	public RdmaImageHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
+		super(rdmaConnection, serverIpAddress, serverPort);
 	}
 
+	
+	/**
+	 * Requests the image network.png from the server
+	 * 
+	 * @return the byte array representation of the image
+	 * @throws RdmaConnectionException
+	 */
 	private byte[] requestImage() throws RdmaConnectionException {
 		rdmaConnection.rdmaSend(GET_IMAGE.getBytes(), GET_IMAGE_ID);
 		logger.debug("Requested the image with the request " + GET_IMAGE + " and id " + GET_IMAGE_ID);
@@ -50,14 +57,12 @@ public class RdmaImageHandler extends RdmaHandler {
 	 * If the communication between the proxy and the server fails, the proxy replies with HTTP 504 (Gateway Time-out).
 	 * </p>
 	 */
-    //@Override
     public void handle(HttpExchange t) throws IOException {
     	logger.debug("Starting to handle the request " + t.getRequestURI());
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
     			byte[] image = null;
-    			verifyConnection();
     			synchronized (rdmaConnection) {
     				image = requestImage();
 				}

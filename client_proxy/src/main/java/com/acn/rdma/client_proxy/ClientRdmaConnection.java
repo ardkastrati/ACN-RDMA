@@ -41,6 +41,7 @@ public class ClientRdmaConnection {
 	public static final int STATUS_CODE_200_OK = 200;
 	
 	private ClientEndpoint clientEndpoint;
+	private RdmaActiveEndpointGroup<ClientEndpoint> clientEndpointGroup;
 	
 	/**
 	 * Creates the client RDMA endpoint. 
@@ -65,7 +66,6 @@ public class ClientRdmaConnection {
 		try {
 			logger.debug("Creating the endpoint group...");
 			//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-			RdmaActiveEndpointGroup<ClientEndpoint> clientEndpointGroup;
 			clientEndpointGroup = new RdmaActiveEndpointGroup<ClientEndpoint>(1000, false, 128, 4, 128);
 			logger.debug("Creating the factory...");
 			ClientFactory clientFactory = new ClientFactory(clientEndpointGroup);
@@ -211,8 +211,9 @@ public class ClientRdmaConnection {
 	 *  </ul>
 	 * </p>
 	 * Then it creates a RDMA operation in the send working queue.
+	 * @throws RdmaConnectionException 
 	 */
-	private void createRdmaReadOperation() {
+	private void createRdmaReadOperation() throws RdmaConnectionException {
 		//read the message that the server sent with information about the 'RDMA read' that we should do
 		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
 		recvBuf.clear();
@@ -236,7 +237,7 @@ public class ClientRdmaConnection {
 			logger.debug("Stored the values in the RDMA read operation.");
 		}
 		else {
-			// TODO: send an exception when RdmaConnectionException is created
+			throw new RdmaConnectionException("status code not 200: " + status_code);
 		}
 	}
 	
@@ -330,6 +331,32 @@ public class ClientRdmaConnection {
 		recvBuf.clear();
 		return message;
 	}
-
+	
+	/**
+	 * Checks if the endpoint of the connection is connected to the server
+	 * 
+	 * @return true if the endpoint is connected to the server, false otherwise
+	 */
+	public boolean isConnected() {
+		return clientEndpoint.isConnected();
+	}
+	
+	
+	/**
+	 * Closes the endpoint and frees all resources
+	 */
+	public void closeEndpoint() {
+		try {
+			clientEndpoint.close();
+			clientEndpointGroup.close();
+		} catch (IOException e) {
+			logger.debug("Problems closing the endpoint");
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			logger.debug("Problems closing the endpoint");
+			e.printStackTrace();
+		}
+		logger.debug("Endpoint closed !");
+	}
 	
 }
