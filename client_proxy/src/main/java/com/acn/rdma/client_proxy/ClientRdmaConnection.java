@@ -61,5 +61,11 @@ public interface ClientRdmaConnection {
 	 */
 	public boolean isConnected();
 	
+	
+	/**
+	 * Restart.
+	 */
+	public void restart();
+	
 
 }

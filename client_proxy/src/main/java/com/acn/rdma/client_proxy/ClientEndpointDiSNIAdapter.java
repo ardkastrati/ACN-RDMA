@@ -35,13 +35,13 @@ import com.ibm.disni.rdma.verbs.SVCPostSend;
  * </p>
  * @version 1
  */
-public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements ClientRdmaConnection {
+public class ClientEndpointDiSNIAdapter implements ClientRdmaConnection {
 	
 	private static final Logger logger = Logger.getLogger(ClientRdmaConnection.class);
 	public static final int STATUS_CODE_200_OK = 200;
 	
 	private RdmaActiveEndpointGroup<ClientEndpoint> clientEndpointGroup;
-	private boolean isConnected = false;
+	private ClientEndpoint clientEndpoint;
 	
 	/**
 	 * Creates the client RDMA endpoint. 
@@ -61,10 +61,25 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 * 
 	 * @throws IOException
 	 */
-	// This is created by looking at the examples in the Github.
-	public ClientEndpointDiSNIAdapter(RdmaActiveEndpointGroup<? extends ClientEndpoint> endpointGroup, RdmaCmId idPriv, boolean isServerSide) throws IOException {
-		super(endpointGroup, idPriv, isServerSide);
+	
+	
+	private void createClientEndpoint() throws IOException {
+		logger.debug("Creating the endpoint group...");
+		//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
+		RdmaActiveEndpointGroup<ClientEndpoint> clientEndpointGroup = new RdmaActiveEndpointGroup<ClientEndpoint>(1000, false, 128, 4, 128);
+		logger.debug("Creating the factory...");
+		ClientFactory clientFactory = new ClientFactory(clientEndpointGroup);
+		logger.debug("Initializing the group with the factory...");
+		clientEndpointGroup.init(clientFactory);
+		logger.debug("Creating the endpoint.");
+		//we have passed our own endpoint factory to the group, therefore new endpoints will be of type ClientEndpoint
+		//let's create a new client endpoint		
+		this.clientEndpoint = clientEndpointGroup.createEndpoint();
+		logger.debug("Endpoint successfully created.");
 	}
+	
+	
+	
 	
 	/**
 	 * It tries to connect the client endpoint with the server in the given ip and port.
@@ -76,9 +91,8 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 		try {
 			logger.debug("Trying to connect to the server with IP " + ipAddress + " and port " + port) ;
 			//connect to the server
-			this.connect(URI.create("rdma://" + ipAddress + ":" + port));
-			InetSocketAddress _addr = (InetSocketAddress) this.getDstAddr();
-			isConnected = true;
+			clientEndpoint.connect(URI.create("rdma://" + ipAddress + ":" + port));
+			InetSocketAddress _addr = (InetSocketAddress) clientEndpoint.getDstAddr();
 			logger.debug("Client connected to the server in address" + _addr.toString());
 		} catch (Exception e) {
 			logger.debug(e.getMessage());
@@ -173,8 +187,8 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	private int waitForTransmission() throws RdmaConnectionException {
 		try {
 			// take the event confirming that the message was sent
-			IbvWC wc = getWcEvents().take();
-			if (wc == POISON_INSTANCE) {
+			IbvWC wc = clientEndpoint.getWcEvents().take();
+			if (wc == ClientEndpoint.POISON_INSTANCE) {
 				throw new InterruptedException("The Rdma connection was broken.");
 			}
 			logger.debug("Message transmitted, wr_id " + wc.getWr_id());
@@ -204,7 +218,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 */
 	private void createRdmaReadOperation() throws RdmaConnectionException {
 		//read the message that the server sent with information about the 'RDMA read' that we should do
-		ByteBuffer recvBuf = getRecvBuf();
+		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
 		recvBuf.clear();
 		int status_code = recvBuf.getInt();
 		if (status_code == STATUS_CODE_200_OK) {
@@ -216,7 +230,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 			recvBuf.clear();
 			//the RDMA information given above identifies a RDMA buffer at the server side
 			//let's issue a one-sided RDMA read operation to fetch the content from that buffer
-			IbvSendWR sendWR = this.getSendWR();
+			IbvSendWR sendWR = clientEndpoint.getSendWR();
 			sendWR.setOpcode(IbvSendWR.IBV_WR_RDMA_READ);
 			sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
 			sendWR.getRdma().setRemote_addr(addr);
@@ -232,7 +246,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	
 	
 	private void createRecvOperation(int id) {
-		IbvRecvWR recvWR = this.getRecvWR();
+		IbvRecvWR recvWR = clientEndpoint.getRecvWR();
 		recvWR.setWr_id(id);
 		logger.debug("Set the wr id in the receive operation " + id);
 	}
@@ -244,7 +258,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 */
 	private void postReceiveOperation() throws RdmaConnectionException {
 		try {
-			SVCPostRecv postRecv = this.postRecv(this.getWrList_recv());
+			SVCPostRecv postRecv = clientEndpoint.postRecv(clientEndpoint.getWrList_recv());
 			postRecv.execute().free();
 		} catch (IOException e) {
 			throw new RdmaConnectionException(e.getMessage());
@@ -259,7 +273,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 * This method creates a WR Send operation in the send working queue.
 	 */
 	private void createWRSendOperation() {
-		IbvSendWR sendWR = this.getSendWR();
+		IbvSendWR sendWR = clientEndpoint.getSendWR();
 		sendWR.setOpcode(IbvSendWR.IBV_WR_SEND);
 		sendWR.setSend_flags(IbvSendWR.IBV_SEND_SIGNALED);
 	}
@@ -272,7 +286,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 */
 	private void postSendOperation(int id) throws RdmaConnectionException {
 		try {
-			SVCPostSend postSend = this.postSend(this.getWrList_send());
+			SVCPostSend postSend = clientEndpoint.postSend(clientEndpoint.getWrList_send());
 			postSend.getWrMod(0).setWr_id(id);
 			postSend.execute().free();
 		} catch (IOException e) {
@@ -285,12 +299,12 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 * @param message
 	 */
 	private void writeOnSendBuffer(byte[] message) {
-		ByteBuffer sendBuf = this.getSendBuf();
+		ByteBuffer sendBuf = clientEndpoint.getSendBuf();
 		sendBuf.clear();
 		sendBuf.putInt(message.length);
 		sendBuf.put(message);
 		sendBuf.clear();
-		this.setSendLength(Integer.SIZE/8 + message.length);
+		clientEndpoint.setSendLength(Integer.SIZE/8 + message.length);
 	}
 	
 	/**
@@ -298,7 +312,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 * @return
 	 */
 	private byte[] readOnSendBuffer() {
-		ByteBuffer dataBuf = this.getSendBuf();
+		ByteBuffer dataBuf = clientEndpoint.getSendBuf();
 		dataBuf.clear();
 		int length = dataBuf.getInt();
 		byte[] message = new byte[length];
@@ -312,7 +326,7 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 * @return
 	 */
 	private byte[] readOnRecvBuffer() {
-		ByteBuffer recvBuf = this.getRecvBuf();
+		ByteBuffer recvBuf = clientEndpoint.getRecvBuf();
 		recvBuf.clear();
 		int length = recvBuf.getInt();
 		byte[] message = new byte[length];
@@ -327,17 +341,21 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 	 * @return true if the endpoint is connected to the server, false otherwise
 	 */
 	public boolean isConnected() {
-		return isConnected;
+		if (clientEndpoint != null) return clientEndpoint.isConnected();
+		else return false;
 	}
 	
 	
 	/**
-	 * Closes the endpoint and frees all resources
+	 * Closes the endpoint and frees all resources and "restarts" the rdmaConnection.
 	 */
-	public void closeEndpoint() {
+	public void restart() {
 		try {
-			this.close();
-			clientEndpointGroup.close();
+			if (clientEndpoint != null) clientEndpoint.close();
+			logger.debug("Endpoint closed !");
+			if (clientEndpointGroup != null) clientEndpointGroup.close();
+			logger.debug("Endpoint group closed !");
+			createClientEndpoint();
 		} catch (IOException e) {
 			logger.debug("Problems closing the endpoint");
 			e.printStackTrace();
@@ -345,21 +363,9 @@ public class ClientEndpointDiSNIAdapter extends ClientEndpoint implements Client
 			logger.debug("Problems closing the endpoint");
 			e.printStackTrace();
 		}
-		logger.debug("Endpoint closed !");
+		
 	}
 	
-	@Override
-	public synchronized void dispatchCmEvent(RdmaCmEvent cmEvent) throws IOException {
-		super.dispatchCmEvent(cmEvent);
-		if (cmEvent.getEvent() == RdmaCmEvent.EventType.RDMA_CM_EVENT_DISCONNECTED.ordinal()) {
-			logger.debug("Detected " + RdmaCmEvent.EventType.RDMA_CM_EVENT_DISCONNECTED);
-			isConnected = false;
-			wcEvents.add(POISON_INSTANCE);
-		}
-		else if (cmEvent.getEvent() == RdmaCmEvent.EventType.RDMA_CM_EVENT_CONNECT_RESPONSE.ordinal()) {
-			logger.debug("Detected " + RdmaCmEvent.EventType.RDMA_CM_EVENT_CONNECT_RESPONSE);
-			
-		}
-	}
+	
 	
 }

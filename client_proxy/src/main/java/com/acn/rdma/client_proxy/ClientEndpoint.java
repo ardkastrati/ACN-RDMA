@@ -191,7 +191,13 @@ public class ClientEndpoint extends RdmaActiveEndpoint {
 	@Override
 	public synchronized void dispatchCmEvent(RdmaCmEvent cmEvent) throws IOException {
 		super.dispatchCmEvent(cmEvent);
-		logger.debug("Detected that it was connected/disconnected.");
+		if (cmEvent.getEvent() == RdmaCmEvent.EventType.RDMA_CM_EVENT_DISCONNECTED.ordinal()) {
+			logger.debug("Detected " + RdmaCmEvent.EventType.RDMA_CM_EVENT_DISCONNECTED);
+			wcEvents.add(POISON_INSTANCE);
+		}
+		else if (cmEvent.getEvent() == RdmaCmEvent.EventType.RDMA_CM_EVENT_CONNECT_RESPONSE.ordinal()) {
+			logger.debug("Detected " + RdmaCmEvent.EventType.RDMA_CM_EVENT_CONNECT_RESPONSE);
+		}
 	}
 	
 	@Override

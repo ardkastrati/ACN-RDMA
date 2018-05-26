@@ -2,6 +2,7 @@ package com.acn.rdma.client_proxy;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.sql.Connection;
 import java.util.Base64;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -15,6 +16,7 @@ import com.sun.net.httpserver.HttpExchange;
 @SuppressWarnings("restriction")
 public class RdmaImageHandler extends RdmaHandler {
 	
+	private int id = 1;
 	public RdmaImageHandler(ClientRdmaConnection rdmaConnection, String serverIpAddress, int serverPort) {
 		super(rdmaConnection, serverIpAddress, serverPort);
 	}
@@ -58,14 +60,18 @@ public class RdmaImageHandler extends RdmaHandler {
 	 * </p>
 	 */
     public void handle(HttpExchange t) throws IOException {
-    	logger.debug("Starting to handle the request " + t.getRequestURI());
+    	logger.debug("Id: " + id + " starting to handle the request " + t.getRequestURI());
     	
     	if (t.getRequestURI().getHost().equals(RDMA_WEBPAGE_URL_PREFIX)) {
     		try {
     			byte[] image = null;
-				if (!rdmaConnection.isConnected()) connectToServer();
-				
+    			
     			synchronized (rdmaConnection) {
+    				if (!rdmaConnection.isConnected()) {
+        				rdmaConnection.restart();
+        				connectToServer();
+    				}
+    					
     				image = requestImage();
 				}
     			

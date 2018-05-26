@@ -16,17 +16,17 @@ import com.ibm.disni.rdma.verbs.RdmaCmId;
  */
 
 //This class is taken from the DiSNI examples in GitHub. (Programming with DiSNI chapter)
-public class ClientFactory implements RdmaEndpointFactory<ClientEndpointDiSNIAdapter> {
+public class ClientFactory implements RdmaEndpointFactory<ClientEndpoint> {
 	private static final Logger logger = Logger.getLogger(ClientFactory.class);
 	
-	private RdmaActiveEndpointGroup<ClientEndpointDiSNIAdapter> endpointGroup;
+	private RdmaActiveEndpointGroup<ClientEndpoint> endpointGroup;
 	
 	/**
 	 * Constructs the the client factory by specifying the generic parameter to be <tt>ClientEndpoint</tt>.
 	 * @param endpointGroup the group of endpoint
 	 * @see ClientEndpoint
 	 */
-	public ClientFactory(RdmaActiveEndpointGroup<ClientEndpointDiSNIAdapter> endpointGroup) {
+	public ClientFactory(RdmaActiveEndpointGroup<ClientEndpoint> endpointGroup) {
 		this.endpointGroup = endpointGroup;
 	}
 	
@@ -34,9 +34,9 @@ public class ClientFactory implements RdmaEndpointFactory<ClientEndpointDiSNIAda
 	 * Instantiates the ClientEndpoint class.
 	 * @see ClientEndpoint
 	 */
-	public ClientEndpointDiSNIAdapter createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
+	public ClientEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
 		logger.debug("Trying to create the custom endpoint (ClientEndpoint)...");
-		ClientEndpointDiSNIAdapter endpoint = new ClientEndpointDiSNIAdapter(endpointGroup, idPriv, serverSide);
+		ClientEndpoint endpoint = new ClientEndpoint(endpointGroup, idPriv, serverSide);
 		logger.debug("Successfully created the custom endpoint (Client Endpoint).");
 		return endpoint;
 

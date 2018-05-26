@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 
+import com.ibm.disni.rdma.RdmaActiveEndpointGroup;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -55,13 +56,6 @@ public abstract class RdmaHandler implements HttpHandler {
 		this.rdmaConnection = rdmaConnection;
 		this.serverIpAddress = serverIpAddress;
 		this.serverPort = serverPort;
-	
-		try {
-			connectToServer();
-		} catch (RdmaConnectionException e) {
-			logger.debug("Failed to connect to the server");
-		}
-
 	}
 
 	/**
@@ -83,12 +77,9 @@ public abstract class RdmaHandler implements HttpHandler {
 			executor.shutdownNow();
 			throw new RdmaConnectionException(e.getMessage());
 		}
-		
 		executor.shutdown();
-		
 		logger.debug("Successfully connected to the server.");	
 	}
-	
 	
 	/**
 	 * Responds with a 404 error.

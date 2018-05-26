@@ -57,11 +57,9 @@ public class ClientProxy {
 	 * @throws {@link RdmaConnectionException} 
 	 */
 	public void start() throws RdmaConnectionException, IOException {
-		logger.debug("Starting interception from the browser...");
-		ClientRdmaConnection connection = null;
-		logger.debug("Creating a RDMA connection...");
-		connection = createClientEndpoint();
+		ClientRdmaConnection connection = new ClientEndpointDiSNIAdapter();
 		
+		logger.debug("Starting interception from the browser...");
 		// create a handler for the index.html file
 		HttpServer server = HttpServer.create(new InetSocketAddress(interceptionPort), 0);
         server.createContext("/", new RdmaIndexHandler(connection, serverIpAddress, serverPort));
@@ -76,20 +74,6 @@ public class ClientProxy {
 		logger.debug("Interception started.");
 	}
 	
-	private ClientEndpointDiSNIAdapter createClientEndpoint() throws IOException {
-		logger.debug("Creating the endpoint group...");
-		//create a EndpointGroup. The RdmaActiveEndpointGroup contains CQ processing and delivers CQ event to the endpoint.dispatchCqEvent() method.
-		RdmaActiveEndpointGroup<ClientEndpointDiSNIAdapter> clientEndpointGroup = new RdmaActiveEndpointGroup<ClientEndpointDiSNIAdapter>(1000, false, 128, 4, 128);
-		logger.debug("Creating the factory...");
-		ClientFactory clientFactory = new ClientFactory(clientEndpointGroup);
-		logger.debug("Initializing the group with the factory...");
-		clientEndpointGroup.init(clientFactory);
-		logger.debug("Creating the endpoint.");
-		//we have passed our own endpoint factory to the group, therefore new endpoints will be of type ClientEndpoint
-		//let's create a new client endpoint		
-		ClientEndpointDiSNIAdapter adapter = clientEndpointGroup.createEndpoint();
-		logger.debug("Endpoint successfully created.");
-		return adapter;
-	}
+	
     
 }
