@@ -180,6 +180,16 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 	}
 	
 	
+	@Override
+	public synchronized void close() throws IOException, InterruptedException {
+		super.deregisterMemory(dataMr);
+		super.deregisterMemory(sendMr);
+		super.deregisterMemory(recvMr);
+		logger.debug("Memory deregistered");
+		super.close();
+	}
+	
+	
 	public void dispatchCqEvent(IbvWC wc) throws IOException {
 		wcEvents.add(wc);
 	}
