@@ -1,4 +1,4 @@
-# ACN - Assignment 9
+# ACN - Assignment 8
 
 ## Getting started
 
@@ -48,11 +48,11 @@ Port: 8000
  
  ### Server State
  
- ![Status qup](https://gitlab.ethz.ch/andreba/ACN-RDMA/tree/master/server/src/main/resources/server.png) 
+ ![Status qup](RDMAServer/src/main/resources/server.png) 
  
  ### Client Proxy State
  
- ![Status qup](https://gitlab.ethz.ch/andreba/ACN-RDMA/tree/master/client_proxy/src/main/resources/clientproxy.png) 
+ ![Status qup](RDMAClientProxy/src/main/resources/clientproxy.png) 
  
  
 
