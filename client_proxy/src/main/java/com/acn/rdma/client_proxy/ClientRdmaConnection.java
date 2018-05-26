@@ -64,8 +64,9 @@ public interface ClientRdmaConnection {
 	
 	/**
 	 * Restart.
+	 * @throws RdmaConnectionException 
 	 */
-	public void restart();
+	public void restart() throws RdmaConnectionException;
 	
 
 }

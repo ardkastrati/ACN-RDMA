@@ -348,20 +348,23 @@ public class ClientEndpointDiSNIAdapter implements ClientRdmaConnection {
 	
 	/**
 	 * Closes the endpoint and frees all resources and "restarts" the rdmaConnection.
+	 * @throws RdmaConnectionException 
 	 */
-	public void restart() {
+	public void restart() throws RdmaConnectionException {
 		try {
-			if (clientEndpoint != null) clientEndpoint.close();
+			if (clientEndpoint != null && !clientEndpoint.isClosed()) clientEndpoint.close();
 			logger.debug("Endpoint closed !");
-			if (clientEndpointGroup != null) clientEndpointGroup.close();
+			if (clientEndpointGroup != null && !clientEndpointGroup.isClosed()) clientEndpointGroup.close();
 			logger.debug("Endpoint group closed !");
+		} catch (Exception e) {
+			logger.debug("Problems closing the endpoint");
+			throw new RdmaConnectionException("Could not close the endpoint properly");
+		}
+		try {
 			createClientEndpoint();
 		} catch (IOException e) {
-			logger.debug("Problems closing the endpoint");
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			logger.debug("Problems closing the endpoint");
-			e.printStackTrace();
+			logger.debug("Could not re-create a client point");
+			throw new RdmaConnectionException("Could not re-create a client endpoint");
 		}
 		
 	}

@@ -71,6 +71,7 @@ public class RdmaIndexHandler extends RdmaHandler {
         		synchronized (rdmaConnection) {
         			logger.debug("Hini qetu  + " + rdmaConnection.isConnected());
     				if (!rdmaConnection.isConnected()) {
+    					logger.debug("Restarting ...");
     					rdmaConnection.restart();
     					connectToServer();
     				}
