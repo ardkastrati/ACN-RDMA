@@ -1,5 +1,7 @@
 package com.acn.rdma.server;
 
+import java.io.IOException;
+
 import org.apache.commons.cli.*;
 
 import org.apache.log4j.Logger;
@@ -49,13 +51,13 @@ public class ServerApplication {
 			System.exit(1);
 		}
 		Server server = new Server(SERVER_IP, SERVER_PORT);
+		logger.debug("Starting the server...");
 		try {
-			logger.debug("Starting the server...");
 			server.start();
-		} catch (RdmaConnectionException e) {
-			e.printStackTrace();
+		} catch (IOException | InterruptedException e) {
+			logger.debug("An unexpected error occurred>: " + e.getMessage());
 			System.exit(1);
-		}	
+		}
 	}
 
 

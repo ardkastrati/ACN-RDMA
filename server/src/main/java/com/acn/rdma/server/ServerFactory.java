@@ -17,17 +17,17 @@ import com.ibm.disni.rdma.verbs.RdmaCmId;
  */
 
 //This class is taken from the DiSNI examples in GitHub. (Programming with DiSNI chapter)
-public class ServerFactory implements RdmaEndpointFactory<ServerEndpoint> {
+public class ServerFactory implements RdmaEndpointFactory<ServerEndpointDiSNIAdapter> {
 	private static final Logger logger = Logger.getLogger(ServerFactory.class);
 	
-	private RdmaActiveEndpointGroup<ServerEndpoint> endpointGroup;
+	private RdmaActiveEndpointGroup<ServerEndpointDiSNIAdapter> endpointGroup;
 	
 	/**
 	 * Constructs the the server factory by specifying the generic parameter to be <tt>ServerEndpoint</tt>.
 	 * @param endpointGroup the group of endpoint
 	 * @see ClientEndpoint
 	 */
-	public ServerFactory(RdmaActiveEndpointGroup<ServerEndpoint> endpointGroup) {
+	public ServerFactory(RdmaActiveEndpointGroup<ServerEndpointDiSNIAdapter> endpointGroup) {
 		this.endpointGroup = endpointGroup;
 	}
 	
@@ -36,9 +36,9 @@ public class ServerFactory implements RdmaEndpointFactory<ServerEndpoint> {
 	 * Instantiates the ServerEndpoint class.
 	 * @see ServerEndpoint
 	 */
-	public ServerEndpoint createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
+	public ServerEndpointDiSNIAdapter createEndpoint(RdmaCmId idPriv, boolean serverSide) throws IOException {
 		logger.debug("Trying to create the custom endpoint (ServerEndpoint)");
-		ServerEndpoint endpoint = new ServerEndpoint(endpointGroup, idPriv, serverSide);
+		ServerEndpointDiSNIAdapter endpoint = new ServerEndpointDiSNIAdapter(endpointGroup, idPriv, serverSide);
 		logger.debug("Successfully created the custom endpoint (Server Endpoint)");
 		return endpoint;
 	}	

@@ -14,6 +14,7 @@ import com.ibm.disni.rdma.verbs.IbvRecvWR;
 import com.ibm.disni.rdma.verbs.IbvSendWR;
 import com.ibm.disni.rdma.verbs.IbvSge;
 import com.ibm.disni.rdma.verbs.IbvWC;
+import com.ibm.disni.rdma.verbs.RdmaCmEvent;
 import com.ibm.disni.rdma.verbs.RdmaCmId;
 
 
@@ -69,8 +70,8 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 	private LinkedList<IbvSge> sgeListRecv;
 	private IbvRecvWR recvWR;
 	
-	private ArrayBlockingQueue<IbvWC> wcEvents;
-	
+	protected ArrayBlockingQueue<IbvWC> wcEvents;
+	protected static final IbvWC POISON_INSTANCE = new IbvWC();
 	
 	/**
 	 * Constructs the <tt>ServerEndpoint</tt>. Creates the buffers, working request lists and the working 
@@ -177,8 +178,6 @@ public class ServerEndpoint extends RdmaActiveEndpoint {
 		recvWR.setSg_list(sgeListRecv);
 		wrList_recv.add(recvWR);
 	}
-	
-	
 	
 	
 	public void dispatchCqEvent(IbvWC wc) throws IOException {
