@@ -47,10 +47,12 @@ Port: 8000
  - After client disconnection, the server will go back to acceptRdma() state to accept new connections
  - The client is not capable of reconnecting with the server, if it failed to connect once.
  
- ### Remark
+### Remark
+ 
 - The client cannot reconnect because DiSNI library doesn't support this. Even if we deregister buffers, close endpoints and endpointGroups in the library and try to connect again an internal error about memory registration failure occurs. One has to use newer versions to achieve this. We tried to deregister the memory by ourselves, but it doesn't work. 
 
 ## Info about the design
+
 - We created an interface both in the client and the server by using the adapter design pattern to manage easier the DiSNI API. 
  
  ### Server State
