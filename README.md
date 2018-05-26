@@ -1,5 +1,12 @@
 # ACN - Assignment 8
 
+## General info
+
+This project was created in a group of two by:
+
+- Andre Baptista Aguas (username: andreba)
+- Ard Kastrati (username: kard)
+
 ## Getting started
 
 ### Setup
