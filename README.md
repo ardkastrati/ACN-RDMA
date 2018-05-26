@@ -55,11 +55,11 @@ Port: 8000
 
 - We created an interface both in the client and the server by using the adapter design pattern to manage easier the DiSNI API. 
  
- ### Server State
+### Server State
  
  ![Status qup](RDMAServer/src/main/resources/server.png) 
  
- ### Client Proxy State
+### Client Proxy State
  
  ![Status qup](RDMAClientProxy/src/main/resources/clientproxy.png) 
  
