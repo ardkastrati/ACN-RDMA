@@ -19,6 +19,13 @@ public class RdmaImageHandler extends RdmaHandler {
 		super(rdmaConnection, serverIpAddress, serverPort);
 	}
 
+	
+	/**
+	 * Requests the image network.png from the server
+	 * 
+	 * @return the byte array representation of the image
+	 * @throws RdmaConnectionException
+	 */
 	private byte[] requestImage() throws RdmaConnectionException {
 		rdmaConnection.rdmaSend(GET_IMAGE.getBytes(), GET_IMAGE_ID);
 		logger.debug("Requested the image with the request " + GET_IMAGE + " and id " + GET_IMAGE_ID);

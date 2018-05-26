@@ -20,6 +20,12 @@ public class RdmaIndexHandler extends RdmaHandler {
 	}
 
 
+	/**
+	 * Requests the file index.html from the server
+	 * 
+	 * @return the byte array representation of the file
+	 * @throws RdmaConnectionException
+	 */
 	private byte[] requestIndex() throws RdmaConnectionException {
 		rdmaConnection.rdmaSend(GET_INDEX.getBytes(), GET_INDEX_ID);
 		logger.debug("Sent a " + GET_INDEX + " with id " + GET_INDEX_ID + " to the server.");

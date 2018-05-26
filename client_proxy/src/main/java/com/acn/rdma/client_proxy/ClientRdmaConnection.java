@@ -332,11 +332,19 @@ public class ClientRdmaConnection {
 		return message;
 	}
 	
-	
+	/**
+	 * Checks if the endpoint of the connection is connected to the server
+	 * 
+	 * @return true if the endpoint is connected to the server, false otherwise
+	 */
 	public boolean isConnected() {
 		return clientEndpoint.isConnected();
 	}
 	
+	
+	/**
+	 * Closes the endpoint and frees all resources
+	 */
 	public void closeEndpoint() {
 		try {
 			clientEndpoint.close();

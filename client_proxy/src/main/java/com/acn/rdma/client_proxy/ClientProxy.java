@@ -55,11 +55,6 @@ public class ClientProxy {
 	 */
 	public void start() throws RdmaConnectionException, IOException {
 		logger.debug("Starting interception from the browser...");
-		startInterceptionFromBrowser();
-		logger.debug("Interception started.");
-	}
-
-	private void startInterceptionFromBrowser() throws IOException {
 		ClientRdmaConnection rdmaConnection = null;
 		try {
 			logger.debug("Creating a RDMA connection...");
@@ -79,6 +74,8 @@ public class ClientProxy {
         server.setExecutor(null);
         
         server.start();
+
+		logger.debug("Interception started.");
 	}
     
 }

@@ -63,7 +63,12 @@ public abstract class RdmaHandler implements HttpHandler {
 		}
 	}
 
-	
+	/**
+	 * Tries to connect the client endpoint to the server
+	 * 
+	 * 
+	 * @throws RdmaConnectionException if the connection fails, either due to timeout or another connection error
+	 */
 	private void connectToServer() throws RdmaConnectionException {
 		logger.debug("Connecting to the server...");
 		
@@ -155,7 +160,10 @@ public abstract class RdmaHandler implements HttpHandler {
 	}
 	
 	
-	
+	/**
+	 * This class tries to connect the client endpoint to the server
+	 * It extends callable to be possible to timeout when the server is offline
+	 */
 	private class RdmaConnectToServer implements Callable<ClientRdmaConnection> {
 		
 		ClientRdmaConnection connection;
@@ -169,6 +177,9 @@ public abstract class RdmaHandler implements HttpHandler {
 			this.serverPort = serverPort;
 		}
 
+		/**
+		 * Tries to connect the client endpoint to the server
+		 */
 		public ClientRdmaConnection call() throws Exception {
 			logger.debug("Connecting...");
 			connection.rdmaConnect(serverIpAddress, serverPort);
