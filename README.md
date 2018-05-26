@@ -38,7 +38,7 @@ Port: 8000
 - $ cd RDMAClientProxy/target
 - $ java -jar RDMAClientProxy-*.jar -a 10.0.2.15
 
- ## General Info about the system
+## General Info about the system
  
  - We used version 1.0 of DiSNI
  - The program runs in the VM that is provided to us (without any changes)
